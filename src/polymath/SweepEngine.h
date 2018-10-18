@@ -6,6 +6,7 @@
 #include "Visualization.h"
 
 #include <algorithm>
+#include <limits>
 #include <memory>
 
 // TODO: remove
@@ -29,6 +30,9 @@ class SweepEngine {
 
 public:
 	typedef typename Vertex::value_type value_type;
+
+public:
+	static constexpr value_type INPUT_MAX = std::sqrt(std::numeric_limits<value_type>::max()) * value_type(0.25);
 
 private:
 	struct OutputVertex {
@@ -166,83 +170,95 @@ private:
 			vb = edge2;
 		}
 
-		// bounding box check
+		// check for intersection
 		if(CompareVertexVertex(va, vb)) {
-			if(a2.x() <= std::min(b1.x(), b2.x()))
+			//assert(b2.y() > b1.y());
+			value_type num = (b2.x() - b1.x()) * (a2.y() - b1.y()) - (b2.y() - b1.y()) * (a2.x() - b1.x());
+			if(num >= value_type(0) && a2.x() <= std::max(b1.x(), b2.x()))
 				return false;
-			if(a2.x() > std::max(b1.x(), b2.x())) {
-				value_type det = (a1.x() - a2.x()) * (b1.y() - b2.y()) - (a1.y() - a2.y()) * (b1.x() - b2.x());
-				if(det <= value_type(0)) {
-					result = b1;
-				} else {
-
-					// calculate intersection
-					value_type v = (b2.x() - a2.x()) * (a1.y() - a2.y()) - (b2.y() - a2.y()) * (a1.x() - a2.x());
-					value_type t = v / det;
-					value_type x = b2.x() + (b1.x() - b2.x()) * t;
-					value_type y = b2.y() + (b1.y() - b2.y()) * t;
-
-					// clip to bounding box
-					value_type xmin = std::max(std::min(a1.x(), a2.x()), std::min(b1.x(), b2.x()));
-					value_type xmax = std::min(std::max(a1.x(), a2.x()), std::max(b1.x(), b2.x()));
-					value_type ymin = std::max(a1.y(), b1.y());
-					value_type ymax = std::min(a2.y(), b2.y());
-					result = Vertex(std::max(xmin, std::min(xmax, x)), std::max(ymin, std::min(ymax, y)));
-
-				}
-				return true;
+			value_type den = (b2.x() - b1.x()) * (a2.y() - a1.y()) - (b2.y() - b1.y()) * (a2.x() - a1.x());
+			if(den >= value_type(0)) {
+				value_type xmin = std::min(b1.x(), b2.x());
+				value_type xmax = std::max(b1.x(), b2.x());
+				result = Vertex(std::min(xmax, std::max(xmin, a2.x())), a2.y());
+			} else {
+				value_type t = std::max(value_type(0), std::min(value_type(1), num / den));
+				value_type x = a2.x() + (a1.x() - a2.x()) * t;
+				value_type y = a2.y() + (a1.y() - a2.y()) * t;
+				result = Vertex(x, y);
+				/*value_type xmin = std::min(b1.x(), b2.x());
+				value_type xmax = std::max(b1.x(), b2.x());
+				result = Vertex(std::min(xmax, std::max(xmin, x)), y);*/
 			}
 		} else {
-			if(b2.x() >= std::max(a1.x(), a2.x()))
+			//assert(a2.y() > a1.y());
+			value_type num = (a2.x() - a1.x()) * (b2.y() - a1.y()) - (a2.y() - a1.y()) * (b2.x() - a1.x());
+			if(num <= value_type(0) && b2.x() >= std::min(a1.x(), a2.x()))
 				return false;
-			if(b2.x() < std::min(a1.x(), a2.x())) {
-				value_type det = (a1.x() - a2.x()) * (b1.y() - b2.y()) - (a1.y() - a2.y()) * (b1.x() - b2.x());
-				if(det <= value_type(0)) {
-					result = a1;
-				} else {
-
-					// calculate intersection
-					value_type u = (b2.x() - a2.x()) * (b1.y() - b2.y()) - (b2.y() - a2.y()) * (b1.x() - b2.x());
-					value_type t = u / det;
-					value_type x = a2.x() + (a1.x() - a2.x()) * t;
-					value_type y = a2.y() + (a1.y() - a2.y()) * t;
-
-					// clip to bounding box
-					value_type xmin = std::max(std::min(a1.x(), a2.x()), std::min(b1.x(), b2.x()));
-					value_type xmax = std::min(std::max(a1.x(), a2.x()), std::max(b1.x(), b2.x()));
-					value_type ymin = std::max(a1.y(), b1.y());
-					value_type ymax = std::min(a2.y(), b2.y());
-					result = Vertex(std::max(xmin, std::min(xmax, x)), std::max(ymin, std::min(ymax, y)));
-
-				}
-				return true;
+			value_type den = (a2.x() - a1.x()) * (b2.y() - b1.y()) - (a2.y() - a1.y()) * (b2.x() - b1.x());
+			if(den <= value_type(0)) {
+				value_type xmin = std::min(a1.x(), a2.x());
+				value_type xmax = std::max(a1.x(), a2.x());
+				result = Vertex(std::min(xmax, std::max(xmin, b2.x())), b2.y());
+			} else {
+				value_type t = std::max(value_type(0), std::min(value_type(1), num / den));
+				value_type x = b2.x() + (b1.x() - b2.x()) * t;
+				value_type y = b2.y() + (b1.y() - b2.y()) * t;
+				value_type xmin = std::min(a1.x(), a2.x());
+				value_type xmax = std::max(a1.x(), a2.x());
+				result = Vertex(std::min(xmax, std::max(xmin, x)), y);
 			}
 		}
 
-		// check whether the edges are converging (we assume that edge1 is on the left side)
-		value_type det = (a1.x() - a2.x()) * (b1.y() - b2.y()) - (a1.y() - a2.y()) * (b1.x() - b2.x());
-		if(det <= value_type(0))
-			return false;
+		//result = Vertex(result.x(), std::nextafter(result.y(), -std::numeric_limits<value_type>::max()));
 
-		// check whether the intersection is before the end of the edges
-		value_type u = (b2.x() - a2.x()) * (b1.y() - b2.y()) - (b2.y() - a2.y()) * (b1.x() - b2.x());
-		if(u <= value_type(0))
-			return false;
-		value_type v = (b2.x() - a2.x()) * (a1.y() - a2.y()) - (b2.y() - a2.y()) * (a1.x() - a2.x());
-		if(v <= value_type(0))
-			return false;
+		/*if(a2.y() > b2.y()) {
+			assert(a2.y() > a1.y());
+			value_type num = (a2.x() - a1.x()) * (b2.y() - a1.y()) - (a2.y() - a1.y()) * (b2.x() - a1.x());
+			if(num <= value_type(0))
+				return false;
+			value_type den = (a2.x() - a1.x()) * (b2.y() - b1.y()) - (a2.y() - a1.y()) * (b2.x() - b1.x());
+			if(den <= value_type(0)) {
+				result = b2;
+			} else {
+				value_type t = std::max(value_type(0), std::min(value_type(1), num / den));
+				value_type x = b2.x() + (b1.x() - b2.x()) * t;
+				value_type y = b2.y() + (b1.y() - b2.y()) * t;
+				result = Vertex(x, y);
+			}
+		} else if(b2.y() > a2.y()) {
+			assert(b2.y() > b1.y());
+			value_type num = (b2.x() - b1.x()) * (a2.y() - b1.y()) - (b2.y() - b1.y()) * (a2.x() - b1.x());
+			if(num >= value_type(0))
+				return false;
+			value_type den = (b2.x() - b1.x()) * (a2.y() - a1.y()) - (b2.y() - b1.y()) * (a2.x() - a1.x());
+			if(den >= value_type(0)) {
+				result = a2;
+			} else {
+				value_type t = std::max(value_type(0), std::min(value_type(1), num / den));
+				value_type x = a2.x() + (a1.x() - a2.x()) * t;
+				value_type y = a2.y() + (a1.y() - a2.y()) * t;
+				result = Vertex(x, y);
+			}
+		} else {
+			if(a2.x() <= b2.x())
+				return false;
+			if(a2.y() > a1.y()) {
+				value_type num = (a2.x() - a1.x()) * (b2.y() - a1.y()) - (a2.y() - a1.y()) * (b2.x() - a1.x());
+				value_type den = (a2.x() - a1.x()) * (b2.y() - b1.y()) - (a2.y() - a1.y()) * (b2.x() - b1.x());
+				if(den <= value_type(0)) {
+					result = b2;
+				} else {
+					value_type t = std::max(value_type(0), std::min(value_type(1), num / den));
+					value_type x = b2.x() + (b1.x() - b2.x()) * t;
+					value_type y = b2.y() + (b1.y() - b2.y()) * t;
+					result = Vertex(x, y);
+				}
+				return true;
+			} else {
 
-		// calculate intersection
-		value_type t = u / det;
-		value_type x = a2.x() + (a1.x() - a2.x()) * t;
-		value_type y = a2.y() + (a1.y() - a2.y()) * t;
-
-		// clip to bounding box
-		value_type xmin = std::max(std::min(a1.x(), a2.x()), std::min(b1.x(), b2.x()));
-		value_type xmax = std::min(std::max(a1.x(), a2.x()), std::max(b1.x(), b2.x()));
-		value_type ymin = std::max(a1.y(), b1.y());
-		value_type ymax = std::min(a2.y(), b2.y());
-		result = Vertex(std::max(xmin, std::min(xmax, x)), std::max(ymin, std::min(ymax, y)));
+			}
+		}*/
 
 		return true;
 

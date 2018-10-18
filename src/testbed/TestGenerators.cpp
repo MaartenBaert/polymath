@@ -115,7 +115,7 @@ Polygon EdgeCaseTest(uint64_t seed, uint32_t num_lines, uint32_t num_polygons) {
 				double t = (double(k ^ flip) + dist_t(rng)) / 2.0;
 				result.AddVertex(Vertex(
 					line.m_v1.x() + (line.m_v2.x() - line.m_v1.x()) * t + dist_eps(rng),
-					line.m_v1.y() + (line.m_v2.y() - line.m_v1.y()) * t + dist_eps(rng)//*3e13
+					line.m_v1.y() + (line.m_v2.y() - line.m_v1.y()) * t + dist_eps(rng)//*1e14
 				));
 			}
 		}

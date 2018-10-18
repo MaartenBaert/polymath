@@ -24,7 +24,7 @@ MainWindow::MainWindow() {
 	{
 		m_spinbox_seed = new QSpinBox(groupbox_basic);
 		m_spinbox_seed->setRange(0, 999999);
-		m_spinbox_seed->setValue(6690);
+		m_spinbox_seed->setValue(747);
 		m_spinbox_size = new QSpinBox(groupbox_basic);
 		m_spinbox_size->setRange(1, 100);
 		m_spinbox_size->setValue(2);
