@@ -88,7 +88,7 @@ void MainWindow::MakeTest(uint64_t seed, uint32_t grid_size, double grid_angle) 
 
 void MainWindow::OnTestChanged() {
 	MakeTest(uint64_t(m_spinbox_seed->value()), uint32_t(m_spinbox_size->value()), m_spinbox_angle->value());
-	PolyMath::SweepEngine<Vertex, PolyMath::WindingEngine_Xor> engine(m_polygon);
+	PolyMath::SweepEngine<Vertex, PolyMath::NumericalEngine<typename Vertex::value_type>, PolyMath::WindingEngine_Xor> engine(m_polygon);
 	engine.Process(PolyMath::DummyVisualizationCallback);
 	m_visual->SetPolygonOutput(engine.Result());
 }
@@ -97,7 +97,7 @@ void MainWindow::OnButtonSimplify() {
 	Polygon result;
 	auto t1 = std::chrono::high_resolution_clock::now();
 	{
-		PolyMath::SweepEngine<Vertex, PolyMath::WindingEngine_Xor> engine(m_polygon);
+		PolyMath::SweepEngine<Vertex, PolyMath::NumericalEngine<typename Vertex::value_type>, PolyMath::WindingEngine_Xor> engine(m_polygon);
 		engine.Process([&](){
 			m_visual->SetVisualization(engine.Visualize());
 		});
@@ -184,7 +184,7 @@ void MainWindow::OnButtonEdgeCases() {
 		Polygon poly = TestGenerators::EdgeCaseTest(seed, 2, 4);
 
 		// process
-		PolyMath::SweepEngine<Vertex, PolyMath::WindingEngine_Xor> engine(poly);
+		PolyMath::SweepEngine<Vertex, PolyMath::NumericalEngine<typename Vertex::value_type>, PolyMath::WindingEngine_Xor> engine(poly);
 		engine.Process(PolyMath::DummyVisualizationCallback);
 		Polygon result = engine.Result();
 

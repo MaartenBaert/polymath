@@ -3,7 +3,7 @@ TARGET = polymath
 TEMPLATE = app
 
 INCLUDEPATH += misc polymath testbed wrappers
-LIBS += -lgeos
+LIBS += -lgeos -lquadmath
 
 QMAKE_CXXFLAGS += -std=c++11 -Wconversion -Wsign-conversion -Wfloat-conversion
 QMAKE_CXXFLAGS_RELEASE += -DNDEBUG
@@ -22,29 +22,30 @@ SOURCES += \
 	misc/clipper.cpp \
 	testbed/Main.cpp \
 	testbed/MainWindow.cpp \
+	testbed/TestGenerators.cpp \
 	testbed/Visualizer.cpp \
 	wrappers/BoostWrapper.cpp \
 	wrappers/ClipperWrapper.cpp \
 	wrappers/GeosWrapper.cpp \
-	wrappers/PolyMathWrapper.cpp \
-    testbed/TestGenerators.cpp
+	wrappers/PolyMathWrapper.cpp
 
 HEADERS  += \
 	misc/clipper.hpp \
-	testbed/MainWindow.h \
-	testbed/Qt.h \
-	testbed/Visualizer.h \
 	polymath/Common.h \
-	polymath/Polygon.h \
+	polymath/NumericalEngine.h \
 	polymath/PolyMath.h \
+	polymath/Polygon.h \
+	polymath/PolygonPoint.h \
 	polymath/SweepEngine.h \
 	polymath/Vertex.h \
 	polymath/Visualization.h \
 	polymath/WindingEngine.h \
+	testbed/MainWindow.h \
+	testbed/Qt.h \
+	testbed/TestGenerators.h \
+	testbed/Visualizer.h \
 	wrappers/BoostWrapper.h \
 	wrappers/ClipperWrapper.h \
 	wrappers/GeosWrapper.h \
 	wrappers/PolyMathWrapper.h \
-	wrappers/Wrappers.h \
-    polymath/PolygonPoint.h \
-    testbed/TestGenerators.h
+	wrappers/Wrappers.h

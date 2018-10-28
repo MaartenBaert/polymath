@@ -27,7 +27,7 @@ double BenchmarkUnion(const Polygon &poly1, const Polygon &poly2, Polygon &resul
 	// benchmark
 	auto t1 = std::chrono::high_resolution_clock::now();
 	for(size_t loop = 0; loop < loops; ++loop) {
-		c = PolyMath::Simplify(a);
+		c = PolyMath::PolygonUnion(a);
 	}
 	auto t2 = std::chrono::high_resolution_clock::now();
 

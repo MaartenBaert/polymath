@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.h"
+#include "NumericalEngine.h"
 #include "Polygon.h"
 #include "Vertex.h"
 #include "Visualization.h"
@@ -25,14 +26,17 @@ inline void DummyVisualizationCallback() {
 	// nothing
 }
 
-template<class Vertex, class WindingEngine>
+template<class Vertex, class NumericalEngine, class WindingEngine>
 class SweepEngine {
 
 public:
-	typedef typename Vertex::value_type value_type;
+	typedef typename NumericalEngine::single_type single_type;
+	typedef typename NumericalEngine::double_type double_type;
+	typedef PolyMath::Vertex<single_type> SingleVertex;
+	typedef PolyMath::Vertex<double_type> DoubleVertex;
 
 public:
-	static constexpr value_type INPUT_MAX = std::sqrt(std::numeric_limits<value_type>::max()) * value_type(0.25);
+	//static constexpr value_type INPUT_MAX = std::sqrt(std::numeric_limits<value_type>::max()) * value_type(0.25);
 
 private:
 	struct OutputVertex {
@@ -55,7 +59,7 @@ private:
 		bool m_tree_red;
 
 		// heap
-		Vertex m_heap_vertex;
+		DoubleVertex m_heap_vertex;
 		size_t m_heap_index;
 
 		// winding number
@@ -91,11 +95,6 @@ private:
 
 private:
 
-	// Returns whether the vector (ref -> a) comes before (ref -> b) in clockwise order.
-	static bool CrossProductTest(Vertex ref, Vertex a, Vertex b) {
-		return ((a.x() - ref.x()) * (b.y() - ref.y()) > (b.x() - ref.x()) * (a.y() - ref.y()));
-	}
-
 	// The 'less than' operator for vertices. It returns whether a comes before b.
 	static bool CompareVertexVertex(SweepVertex *a, SweepVertex *b) {
 		// compare the Y coordinates first
@@ -122,161 +121,88 @@ private:
 	//   The cross product test will return false in this case, which is fine.
 	static bool CompareEdgeVertex(SweepVertex *edge, SweepVertex *vertex) {
 
-		// bounding box check
-		if(vertex->m_vertex.x() <= std::min(edge->m_vertex.x(), edge->m_vertex_next.x()))
-			return false;
-		if(vertex->m_vertex.x() >= std::max(edge->m_vertex.x(), edge->m_vertex_next.x()))
-			return true;
-
-		// actual edge check
+		// get points
+		single_type a1_x, a1_y, a2_x, a2_y;
 		if(edge->m_edge_down) {
-			assert(CompareVertexVertex(edge, vertex));
-			assert(CompareVertexVertex(vertex, edge->m_loop_next));
-			return CrossProductTest(edge->m_vertex, vertex->m_vertex, edge->m_vertex_next);
+			a1_x = edge->m_vertex.x();
+			a1_y = edge->m_vertex.y();
+			a2_x = edge->m_vertex_next.x();
+			a2_y = edge->m_vertex_next.y();
 		} else {
-			assert(CompareVertexVertex(edge->m_loop_next, vertex));
-			assert(CompareVertexVertex(vertex, edge));
-			return CrossProductTest(edge->m_vertex_next, vertex->m_vertex, edge->m_vertex);
+			a1_x = edge->m_vertex_next.x();
+			a1_y = edge->m_vertex_next.y();
+			a2_x = edge->m_vertex.x();
+			a2_y = edge->m_vertex.y();
 		}
+		single_type b_x = vertex->m_vertex.x();
+		single_type b_y = vertex->m_vertex.y();
+		assert(a1_y <= b_y);
+		assert(b_y <= a2_y);
+
+		// test
+		return NumericalEngine::OrientationTest(a1_x, a1_y, b_x, b_y, a2_x, a2_y);
 
 	}
 
 	// Calculates the intersection between two edges.
-	static bool IntersectEdgeEdge(SweepVertex *edge1, SweepVertex *edge2, Vertex &result) {
+	static bool IntersectEdgeEdge(SweepVertex *edge1, SweepVertex *edge2, DoubleVertex &result) {
 
 		// ignore intersections of edges that are already connected
 		if(edge1->m_loop_prev == edge2 || edge1->m_loop_next == edge2)
 			return false;
 
 		// get points
-		Vertex a1, a2, b1, b2;
-		SweepVertex *va, *vb;
+		single_type a1_x, a1_y, a2_x, a2_y, b1_x, b1_y, b2_x, b2_y;
 		if(edge1->m_edge_down) {
-			a1 = edge1->m_vertex;
-			a2 = edge1->m_vertex_next;
-			va = edge1->m_loop_next;
+			a1_x = edge1->m_vertex.x();
+			a1_y = edge1->m_vertex.y();
+			a2_x = edge1->m_vertex_next.x();
+			a2_y = edge1->m_vertex_next.y();
 		} else {
-			a1 = edge1->m_vertex_next;
-			a2 = edge1->m_vertex;
-			va = edge1;
+			a1_x = edge1->m_vertex_next.x();
+			a1_y = edge1->m_vertex_next.y();
+			a2_x = edge1->m_vertex.x();
+			a2_y = edge1->m_vertex.y();
 		}
 		if(edge2->m_edge_down) {
-			b1 = edge2->m_vertex;
-			b2 = edge2->m_vertex_next;
-			vb = edge2->m_loop_next;
+			b1_x = edge2->m_vertex.x();
+			b1_y = edge2->m_vertex.y();
+			b2_x = edge2->m_vertex_next.x();
+			b2_y = edge2->m_vertex_next.y();
 		} else {
-			b1 = edge2->m_vertex_next;
-			b2 = edge2->m_vertex;
-			vb = edge2;
+			b1_x = edge2->m_vertex_next.x();
+			b1_y = edge2->m_vertex_next.y();
+			b2_x = edge2->m_vertex.x();
+			b2_y = edge2->m_vertex.y();
 		}
+		assert(a1_y <= a2_y);
+		assert(a1_y <= b2_y);
+		assert(b1_y <= a2_y);
+		assert(b1_y <= b2_y);
 
-		// check for intersection
-		if(CompareVertexVertex(va, vb)) {
-			//assert(b2.y() > b1.y());
-			value_type num = (b2.x() - b1.x()) * (a2.y() - b1.y()) - (b2.y() - b1.y()) * (a2.x() - b1.x());
-			if(num >= value_type(0) && a2.x() <= std::max(b1.x(), b2.x()))
-				return false;
-			value_type den = (b2.x() - b1.x()) * (a2.y() - a1.y()) - (b2.y() - b1.y()) * (a2.x() - a1.x());
-			if(den >= value_type(0)) {
-				value_type xmin = std::min(b1.x(), b2.x());
-				value_type xmax = std::max(b1.x(), b2.x());
-				result = Vertex(std::min(xmax, std::max(xmin, a2.x())), a2.y());
-			} else {
-				value_type t = std::max(value_type(0), std::min(value_type(1), num / den));
-				value_type x = a2.x() + (a1.x() - a2.x()) * t;
-				value_type y = a2.y() + (a1.y() - a2.y()) * t;
-				result = Vertex(x, y);
-				/*value_type xmin = std::min(b1.x(), b2.x());
-				value_type xmax = std::max(b1.x(), b2.x());
-				result = Vertex(std::min(xmax, std::max(xmin, x)), y);*/
-			}
-		} else {
-			//assert(a2.y() > a1.y());
-			value_type num = (a2.x() - a1.x()) * (b2.y() - a1.y()) - (a2.y() - a1.y()) * (b2.x() - a1.x());
-			if(num <= value_type(0) && b2.x() >= std::min(a1.x(), a2.x()))
-				return false;
-			value_type den = (a2.x() - a1.x()) * (b2.y() - b1.y()) - (a2.y() - a1.y()) * (b2.x() - b1.x());
-			if(den <= value_type(0)) {
-				value_type xmin = std::min(a1.x(), a2.x());
-				value_type xmax = std::max(a1.x(), a2.x());
-				result = Vertex(std::min(xmax, std::max(xmin, b2.x())), b2.y());
-			} else {
-				value_type t = std::max(value_type(0), std::min(value_type(1), num / den));
-				value_type x = b2.x() + (b1.x() - b2.x()) * t;
-				value_type y = b2.y() + (b1.y() - b2.y()) * t;
-				value_type xmin = std::min(a1.x(), a2.x());
-				value_type xmax = std::max(a1.x(), a2.x());
-				result = Vertex(std::min(xmax, std::max(xmin, x)), y);
-			}
+		// test
+		double_type res_x, res_y;
+		if(NumericalEngine::IntersectionTest(a1_x, a1_y, a2_x, a2_y, b1_x, b1_y, b2_x, b2_y, res_x, res_y)) {
+			result = DoubleVertex(res_x, res_y);
+			return true;
 		}
-
-		//result = Vertex(result.x(), std::nextafter(result.y(), -std::numeric_limits<value_type>::max()));
-
-		/*if(a2.y() > b2.y()) {
-			assert(a2.y() > a1.y());
-			value_type num = (a2.x() - a1.x()) * (b2.y() - a1.y()) - (a2.y() - a1.y()) * (b2.x() - a1.x());
-			if(num <= value_type(0))
-				return false;
-			value_type den = (a2.x() - a1.x()) * (b2.y() - b1.y()) - (a2.y() - a1.y()) * (b2.x() - b1.x());
-			if(den <= value_type(0)) {
-				result = b2;
-			} else {
-				value_type t = std::max(value_type(0), std::min(value_type(1), num / den));
-				value_type x = b2.x() + (b1.x() - b2.x()) * t;
-				value_type y = b2.y() + (b1.y() - b2.y()) * t;
-				result = Vertex(x, y);
-			}
-		} else if(b2.y() > a2.y()) {
-			assert(b2.y() > b1.y());
-			value_type num = (b2.x() - b1.x()) * (a2.y() - b1.y()) - (b2.y() - b1.y()) * (a2.x() - b1.x());
-			if(num >= value_type(0))
-				return false;
-			value_type den = (b2.x() - b1.x()) * (a2.y() - a1.y()) - (b2.y() - b1.y()) * (a2.x() - a1.x());
-			if(den >= value_type(0)) {
-				result = a2;
-			} else {
-				value_type t = std::max(value_type(0), std::min(value_type(1), num / den));
-				value_type x = a2.x() + (a1.x() - a2.x()) * t;
-				value_type y = a2.y() + (a1.y() - a2.y()) * t;
-				result = Vertex(x, y);
-			}
-		} else {
-			if(a2.x() <= b2.x())
-				return false;
-			if(a2.y() > a1.y()) {
-				value_type num = (a2.x() - a1.x()) * (b2.y() - a1.y()) - (a2.y() - a1.y()) * (b2.x() - a1.x());
-				value_type den = (a2.x() - a1.x()) * (b2.y() - b1.y()) - (a2.y() - a1.y()) * (b2.x() - b1.x());
-				if(den <= value_type(0)) {
-					result = b2;
-				} else {
-					value_type t = std::max(value_type(0), std::min(value_type(1), num / den));
-					value_type x = b2.x() + (b1.x() - b2.x()) * t;
-					value_type y = b2.y() + (b1.y() - b2.y()) * t;
-					result = Vertex(x, y);
-				}
-				return true;
-			} else {
-
-			}
-		}*/
-
-		return true;
+		return false;
 
 	}
 
 	// Calculates the intersection between an edge and the sweepline.
-	static void IntersectEdgeSweepLine(SweepVertex *edge, value_type sweepline, Vertex &result) {
+	static void IntersectEdgeSweepLine(SweepVertex *edge, single_type sweepline, Vertex &result) {
 
 		// get points
 		Vertex v1 = edge->m_vertex, v2 = edge->m_vertex_next;
 
 		// calculate intersection
-		value_type div = v2.y() - v1.y();
+		single_type div = v2.y() - v1.y();
 		if(div == 0.0) {
 			result = v1;
 		} else {
-			value_type t = std::max(0.0, std::min(1.0, (sweepline - v1.y()) / div));
-			value_type x = v1.x() + (v2.x() - v1.x()) * t;
+			single_type t = std::max(single_type(0), std::min(single_type(1), (sweepline - v1.y()) / div));
+			single_type x = v1.x() + (v2.x() - v1.x()) * t;
 			result = Vertex(x, sweepline);
 		}
 
@@ -923,6 +849,9 @@ private:
 #endif
 
 	OutputVertex* AddOutputVertex(Vertex vertex, OutputVertex *next) {
+		if(vertex.x() == 0 && vertex.y() == 0) {
+			std::cerr << "AddOutputVertex is (0,0)" << std::endl;
+		}
 		if(m_output_vertex_pool_used == OUTPUT_VERTEX_POOL_SIZE) {
 			std::unique_ptr<OutputVertex[]> mem(new OutputVertex[OUTPUT_VERTEX_POOL_SIZE]);
 			m_output_vertex_pools.push_back(std::move(mem));
@@ -1035,7 +964,7 @@ private:
 
 		// check the order of the edges
 		SweepVertex *edge1, *edge2;
-		if(CrossProductTest(v->m_vertex, v->m_vertex_next, v->m_vertex_prev)) {
+		if(NumericalEngine::OrientationTest(v->m_vertex.x(), v->m_vertex.y(), v->m_vertex_next.x(), v->m_vertex_next.y(), v->m_vertex_prev.x(), v->m_vertex_prev.y())) {
 			edge1 = v->m_loop_prev;
 			edge2 = v;
 		} else {
@@ -1169,7 +1098,8 @@ private:
 			Vertex intersection;
 			IntersectEdgeSweepLine(next, v->m_vertex.y(), intersection);
 			//std::cerr << "IntersectEdgeSweepLine " << intersection << std::endl;
-			ProcessIntersection(v1, intersection);
+			//ProcessIntersection(v1, intersection);
+			ProcessIntersection(v1, v->m_vertex);
 			next = TreeNext(v1);
 		}
 
@@ -1313,11 +1243,11 @@ public:
 				SweepVertex *w = HeapTop();
 				//value_type nan = std::numeric_limits<value_type>::quiet_NaN();
 				//std::cerr << std::setprecision(18) << "heap=" << ((w == nullptr)? Vertex(nan, nan) : w->m_heap_vertex) << " vertex=" << v->m_vertex << std::endl;
-				if(w == nullptr || w->m_heap_vertex.y() > v->m_vertex.y())
+				if(w == nullptr || w->m_heap_vertex.y() > double_type(v->m_vertex.y()))
 					break;
 				visualization_callback();
 				//std::cerr << "ProcessIntersection" << std::endl;
-				ProcessIntersection(w, w->m_heap_vertex);
+				ProcessIntersection(w, Vertex(single_type(w->m_heap_vertex.x()), single_type(w->m_heap_vertex.y())));
 			}
 
 			// process the new vertex
@@ -1358,7 +1288,7 @@ public:
 			if(w == nullptr || w->m_heap_vertex.y() > v->m_vertex.y()) {
 				result.m_current_vertex = v->m_vertex;
 			} else {
-				result.m_current_vertex = w->m_heap_vertex;
+				result.m_current_vertex = Vertex(single_type(w->m_heap_vertex.x()), single_type(w->m_heap_vertex.y()));
 			}
 		}
 
@@ -1369,7 +1299,7 @@ public:
 			edge.m_edge_vertices[0] = v->m_vertex;
 			edge.m_edge_vertices[1] = v->m_loop_next->m_vertex;
 			edge.m_has_intersection = (v->m_heap_index != INDEX_NONE);
-			edge.m_intersection_vertex = v->m_heap_vertex;
+			edge.m_intersection_vertex = Vertex(single_type(v->m_heap_vertex.x()), single_type(v->m_heap_vertex.y()));
 			edge.m_winding_number = v->m_winding_number;
 		}
 

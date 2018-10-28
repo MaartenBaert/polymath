@@ -19,6 +19,9 @@ public:
 	inline Vertex() {}
 	inline Vertex(F x, F y) : m_x(x), m_y(y) {}
 
+	//template<typename G>
+	//inline explicit Vertex(Vertex<G> other) : m_x(F(other.x())), m_y(F(other.y())) {}
+
 	inline F x() const { return m_x; }
 	inline F y() const { return m_y; }
 
