@@ -8,7 +8,7 @@
 
 namespace ClipperWrapper {
 
-constexpr double CLIPPER_SCALE = 1e6;
+constexpr float CLIPPER_SCALE = 1e6;
 
 void PolyToClipper(const Polygon &input, ClipperLib::Polygons &output) {
 	output.clear();
@@ -35,7 +35,7 @@ void PolyFromClipper(const ClipperLib::Polygons &input, Polygon &output) {
 	for(size_t i = 0; i < input.size(); ++i) {
 		const ClipperLib::Polygon &ring = input[i];
 		for(size_t j = 0; j < ring.size(); ++j) {
-			output.AddVertex(Vertex(double(ring[j].X) / CLIPPER_SCALE, double(ring[j].Y) / CLIPPER_SCALE));
+			output.AddVertex(Vertex(float(ring[j].X) / CLIPPER_SCALE, float(ring[j].Y) / CLIPPER_SCALE));
 		}
 		output.AddLoopEnd(1);
 	}

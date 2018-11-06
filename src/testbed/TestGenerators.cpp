@@ -78,23 +78,27 @@ Polygon EdgeCaseTest(uint64_t seed, uint32_t num_lines, uint32_t num_polygons) {
 	// initialize rng
 	std::mt19937_64 rng(seed * SEED_MULT + SEED_ADD);
 	std::uniform_real_distribution<double> dist_coord(-440.0, 440.0);
+	std::uniform_real_distribution<double> dist_scale(-3.0, 0.0);
 	std::uniform_real_distribution<double> dist_t(0.0, 1.0);
-	std::uniform_real_distribution<double> dist_eps(-1e-13, 1e-13);
+	std::uniform_real_distribution<double> dist_eps(1e-5, 1e-5);
 	std::uniform_int_distribution<uint32_t> dist_line(0, num_lines - 1);
 
 	auto RandomLine = [&]() {
+		Line line;
 		if(rng() & 1) {
 			double y = dist_coord(rng);
-			return Line{
-				{dist_coord(rng), y + dist_eps(rng)},
-				{dist_coord(rng), y + dist_eps(rng)},
-			};
+			line.m_v1 = Vertex(dist_coord(rng), y + dist_eps(rng));
+			line.m_v2 = Vertex(dist_coord(rng), y + dist_eps(rng));
 		} else {
-			return Line{
-				{dist_coord(rng), dist_coord(rng)},
-				{dist_coord(rng), dist_coord(rng)},
-			};
+			line.m_v1 = Vertex(dist_coord(rng), dist_coord(rng));
+			line.m_v2 = Vertex(dist_coord(rng), dist_coord(rng));
 		}
+		if(rng() & 1) {
+			double scale = exp2(dist_scale(rng));
+			line.m_v1 = Vertex(line.m_v1.x() * scale, line.m_v1.y() * scale);
+			line.m_v2 = Vertex(line.m_v2.x() * scale, line.m_v2.y() * scale);
+		}
+		return line;
 	};
 
 	// generate random lines
@@ -115,7 +119,7 @@ Polygon EdgeCaseTest(uint64_t seed, uint32_t num_lines, uint32_t num_polygons) {
 				double t = (double(k ^ flip) + dist_t(rng)) / 2.0;
 				result.AddVertex(Vertex(
 					line.m_v1.x() + (line.m_v2.x() - line.m_v1.x()) * t + dist_eps(rng),
-					line.m_v1.y() + (line.m_v2.y() - line.m_v1.y()) * t + dist_eps(rng)//*1e14
+					line.m_v1.y() + (line.m_v2.y() - line.m_v1.y()) * t + dist_eps(rng)
 				));
 			}
 		}

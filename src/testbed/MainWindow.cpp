@@ -27,7 +27,7 @@ MainWindow::MainWindow() {
 		m_spinbox_seed->setValue(747);
 		m_spinbox_size = new QSpinBox(groupbox_basic);
 		m_spinbox_size->setRange(1, 100);
-		m_spinbox_size->setValue(2);
+		m_spinbox_size->setValue(3);
 		m_spinbox_angle = new QDoubleSpinBox(groupbox_basic);
 		m_spinbox_angle->setRange(0.0, 90.0);
 		m_spinbox_angle->setDecimals(1);
@@ -72,7 +72,11 @@ MainWindow::~MainWindow() {
 
 }
 
-void MainWindow::MakeTest(uint64_t seed, uint32_t grid_size, double grid_angle) {
+void MainWindow::OnTestChanged() {
+
+	uint64_t seed = uint64_t(m_spinbox_seed->value());
+	uint32_t grid_size = uint32_t(m_spinbox_size->value());
+	//double grid_angle = m_spinbox_angle->value();
 
 	/*Polygon inputs[2];
 	TestGenerators::DualGridTest(seed, grid_size, grid_angle, TestGenerators::DUALGRID_DEFAULT, false, inputs);
@@ -81,32 +85,31 @@ void MainWindow::MakeTest(uint64_t seed, uint32_t grid_size, double grid_angle) 
 
 	m_polygon = TestGenerators::EdgeCaseTest(seed, grid_size, 2 * grid_size);
 
-	m_visual->SetPolygonInput(m_polygon);
-	m_visual->SetPolygonOutput(Polygon());
-
-}
-
-void MainWindow::OnTestChanged() {
-	MakeTest(uint64_t(m_spinbox_seed->value()), uint32_t(m_spinbox_size->value()), m_spinbox_angle->value());
 	PolyMath::SweepEngine<Vertex, PolyMath::NumericalEngine<typename Vertex::value_type>, PolyMath::WindingEngine_Xor> engine(m_polygon);
 	engine.Process(PolyMath::DummyVisualizationCallback);
-	m_visual->SetPolygonOutput(engine.Result());
+
+	std::unique_ptr<VisualizationWrapper<double>> wrapper(new VisualizationWrapper<double>());
+	wrapper->SetPolygonInput(m_polygon);
+	wrapper->SetPolygonOutput(engine.Result());
+	m_visual->SetWrapper(std::move(wrapper));
+
 }
 
 void MainWindow::OnButtonSimplify() {
-	Polygon result;
-	auto t1 = std::chrono::high_resolution_clock::now();
-	{
-		PolyMath::SweepEngine<Vertex, PolyMath::NumericalEngine<typename Vertex::value_type>, PolyMath::WindingEngine_Xor> engine(m_polygon);
-		engine.Process([&](){
-			m_visual->SetVisualization(engine.Visualize());
-		});
-		result = engine.Result();
-	}
-	auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() << " ms" << std::endl;
-	m_visual->RemoveVisualization();
-	m_visual->SetPolygonOutput(result);
+
+	PolyMath::SweepEngine<Vertex, PolyMath::NumericalEngine<typename Vertex::value_type>, PolyMath::WindingEngine_Xor> engine(m_polygon);
+	engine.Process([&](){
+		std::unique_ptr<VisualizationWrapper<double>> wrapper(new VisualizationWrapper<double>());
+		wrapper->SetPolygonInput(m_polygon);
+		wrapper->SetVisualization(engine.Visualize());
+		m_visual->SetWrapper(std::move(wrapper));
+	});
+
+	std::unique_ptr<VisualizationWrapper<double>> wrapper(new VisualizationWrapper<double>());
+	wrapper->SetPolygonInput(m_polygon);
+	wrapper->SetPolygonOutput(engine.Result());
+	m_visual->SetWrapper(std::move(wrapper));
+
 }
 
 void MainWindow::OnButtonBenchmark() {
@@ -114,15 +117,16 @@ void MainWindow::OnButtonBenchmark() {
 	struct Benchmark {
 		std::string m_name;
 		double (*m_func)(const Polygon&, const Polygon&, Polygon&, size_t);
-		size_t m_loops;
 		bool m_run;
 	};
 
 	std::vector<Benchmark> benchmarks = {
-		{"PolyMath", PolyMathWrapper::BenchmarkUnion, 5000000, true},
-		{"Boost"   , BoostWrapper   ::BenchmarkUnion,  200000, true},
-		{"Clipper" , ClipperWrapper ::BenchmarkUnion,  100000, true},
-		{"Geos"    , GeosWrapper    ::BenchmarkUnion,   10000, true},
+		{"PolyMath F32", PolyMathWrapper::BenchmarkUnion_F32, true},
+		{"PolyMath F64", PolyMathWrapper::BenchmarkUnion_F64, true},
+		{"Boost F32"   , BoostWrapper   ::BenchmarkUnion_F32, true},
+		{"Boost F64"   , BoostWrapper   ::BenchmarkUnion_F64, true},
+		{"Clipper"     , ClipperWrapper ::BenchmarkUnion    , true},
+		{"Geos"        , GeosWrapper    ::BenchmarkUnion    , true},
 	};
 
 	auto W = std::setw(16);
@@ -138,19 +142,23 @@ void MainWindow::OnButtonBenchmark() {
 		std::cout << W << tests[tnum];
 		std::cout.flush();
 
-		Polygon inputs[2], polygon;
+		Polygon inputs[2];
 		TestGenerators::DualGridTest(0, tests[tnum], 20.0, TestGenerators::DUALGRID_DEFAULT, false, inputs);
-		polygon = inputs[0];
-		polygon += inputs[1];
 
-		std::cout << W << polygon.GetVertexCount();
+		std::cout << W << (inputs[0].GetVertexCount() + inputs[1].GetVertexCount());
 		std::cout.flush();
 
 		for(Benchmark &benchmark : benchmarks) {
 			Polygon result;
 			double time = 0.0;
 			if(benchmark.m_run) {
-				time = benchmark.m_func(inputs[0], inputs[1], result, benchmark.m_loops / polygon.GetVertexCount() + 1);
+				size_t loops = 1;
+				for( ; ; ) {
+					time = benchmark.m_func(inputs[0], inputs[1], result, loops); // benchmark.m_loops / polygon.GetVertexCount() + 1
+					if(time * double(loops) > 1.0)
+						break;
+					loops = std::max(loops + 1, size_t(1.5 / time));
+				}
 				benchmark.m_run = (time < 10.0);
 			}
 			std::cout << W << time;
@@ -168,7 +176,7 @@ void MainWindow::OnButtonEdgeCases() {
 
 	std::mt19937_64 rng(UINT64_C(0xc0d9e78ec6150647));
 	std::uniform_real_distribution<double> dist_t(0.0, 1.0);
-	std::uniform_real_distribution<double> dist_eps(-1e-12, 1e-12);
+	std::uniform_real_distribution<double> dist_eps(-1e-4, 1e-4);
 
 	size_t num_tests = 10000, num_probes = 100;
 
@@ -181,7 +189,7 @@ void MainWindow::OnButtonEdgeCases() {
 
 		// generate polygon
 		uint64_t seed = i;
-		Polygon poly = TestGenerators::EdgeCaseTest(seed, 2, 4);
+		Polygon poly = TestGenerators::EdgeCaseTest(seed, 3, 6);
 
 		// process
 		PolyMath::SweepEngine<Vertex, PolyMath::NumericalEngine<typename Vertex::value_type>, PolyMath::WindingEngine_Xor> engine(poly);

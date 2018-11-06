@@ -46,24 +46,28 @@ public:
 			double_type num = (bb2_x - bb1_x) * (aa2_y - bb1_y) - (bb2_y - bb1_y) * (aa2_x - bb1_x);
 			if(num < double_type(0)) {
 				double_type den = (bb2_x - bb1_x) * (aa2_y - aa1_y) - (bb2_y - bb1_y) * (aa2_x - aa1_x);
-				assert(den < double_type(0));
-				assert(num <= double_type(0));
-				assert(num >= den);
-				double_type t = num / den;
-				res_x = aa2_x + (aa1_x - aa2_x) * t;
-				res_y = aa2_y + (aa1_y - aa2_y) * t;
+				if(den < double_type(0)) {
+					double_type t = num / den;
+					res_x = aa2_x + (aa1_x - aa2_x) * t;
+					res_y = aa2_y + (aa1_y - aa2_y) * t;
+				} else {
+					res_x = aa2_x;
+					res_y = aa2_y;
+				}
 				return true;
 			}
 		} else {
 			double_type num = (aa2_x - aa1_x) * (bb2_y - aa1_y) - (aa2_y - aa1_y) * (bb2_x - aa1_x);
 			if(num > double_type(0)) {
 				double_type den = (aa2_x - aa1_x) * (bb2_y - bb1_y) - (aa2_y - aa1_y) * (bb2_x - bb1_x);
-				assert(den > double_type(0));
-				assert(num >= double_type(0));
-				assert(num <= den);
-				double_type t = num / den;
-				res_x = bb2_x + (bb1_x - bb2_x) * t;
-				res_y = bb2_y + (bb1_y - bb2_y) * t;
+				if(den > double_type(0)) {
+					double_type t = num / den;
+					res_x = bb2_x + (bb1_x - bb2_x) * t;
+					res_y = bb2_y + (bb1_y - bb2_y) * t;
+				} else {
+					res_x = bb2_x;
+					res_y = bb2_y;
+				}
 				return true;
 			}
 		}

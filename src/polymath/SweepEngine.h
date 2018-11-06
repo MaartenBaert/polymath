@@ -97,7 +97,7 @@ private:
 
 	// The 'less than' operator for vertices. It returns whether a comes before b.
 	static bool CompareVertexVertex(SweepVertex *a, SweepVertex *b) {
-		// compare the Y coordinates first
+		// compare the X coordinates first
 		if(a->m_vertex.y() < b->m_vertex.y())
 			return true;
 		if(a->m_vertex.y() > b->m_vertex.y())
@@ -113,12 +113,6 @@ private:
 	}
 
 	// The 'less than' operator for an active edge and a vertex. This is used to insert new points in the search tree.
-	// This function does not do bound checking - it assumes that the edge intersects the sweepline (i.e. the Y coordinate of the vertex).
-	// Since we know that the new vertex is always between the two vertices of the active edge, this check is relatively simple.
-	// - If the Y coordinates of the two edge vertices are not equal, then the cross product test will tell us on which side the new vertex is.
-	// - If the Y coordinates of the two edge vertices are equal (i.e. the edge is horizontal), then the vertex always has the same Y coordinate,
-	//   and the X coordinate is between the X coordinates of the edge vertices. That means the vertex is right on the edge, so any result is correct.
-	//   The cross product test will return false in this case, which is fine.
 	static bool CompareEdgeVertex(SweepVertex *edge, SweepVertex *vertex) {
 
 		// get points
@@ -187,24 +181,6 @@ private:
 			return true;
 		}
 		return false;
-
-	}
-
-	// Calculates the intersection between an edge and the sweepline.
-	static void IntersectEdgeSweepLine(SweepVertex *edge, single_type sweepline, Vertex &result) {
-
-		// get points
-		Vertex v1 = edge->m_vertex, v2 = edge->m_vertex_next;
-
-		// calculate intersection
-		single_type div = v2.y() - v1.y();
-		if(div == 0.0) {
-			result = v1;
-		} else {
-			single_type t = std::max(single_type(0), std::min(single_type(1), (sweepline - v1.y()) / div));
-			single_type x = v1.x() + (v2.x() - v1.x()) * t;
-			result = Vertex(x, sweepline);
-		}
 
 	}
 
@@ -1095,10 +1071,6 @@ private:
 		// force intersections for edges that are stuck between the two edges that are going to merge
 		SweepVertex *next = TreeNext(v1);
 		while(next != v2) {
-			Vertex intersection;
-			IntersectEdgeSweepLine(next, v->m_vertex.y(), intersection);
-			//std::cerr << "IntersectEdgeSweepLine " << intersection << std::endl;
-			//ProcessIntersection(v1, intersection);
 			ProcessIntersection(v1, v->m_vertex);
 			next = TreeNext(v1);
 		}

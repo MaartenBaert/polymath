@@ -25,9 +25,6 @@ public:
 	MainWindow();
 	~MainWindow();
 
-private:
-	void MakeTest(uint64_t seed = 0, uint32_t grid_size = 10, double grid_angle = 20.0);
-
 public slots:
 	void OnTestChanged();
 	void OnButtonSimplify();
