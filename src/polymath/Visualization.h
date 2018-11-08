@@ -7,8 +7,6 @@ namespace PolyMath {
 template<class Vertex>
 struct Visualization {
 
-	typedef typename Vertex::value_type value_type;
-
 	struct SweepEdge {
 		Vertex m_edge_vertices[2];
 		bool m_has_intersection;

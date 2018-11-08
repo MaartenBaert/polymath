@@ -8,7 +8,7 @@ void DualGridTest(uint64_t seed, uint32_t grid_size, double grid_angle, DualGrid
 	assert(grid_size != 0);
 
 	std::mt19937_64 rng(seed * SEED_MULT + SEED_ADD);
-	double grid_step = 700.0 / double(grid_size), grid_rot = grid_angle * M_PI / 180.0;
+	double grid_step = 1.4 / double(grid_size), grid_rot = grid_angle * M_PI / 180.0;
 
 	// select distributions
 	std::uniform_int_distribution<uint32_t> dist1;
@@ -77,15 +77,15 @@ Polygon EdgeCaseTest(uint64_t seed, uint32_t num_lines, uint32_t num_polygons) {
 
 	// initialize rng
 	std::mt19937_64 rng(seed * SEED_MULT + SEED_ADD);
-	std::uniform_real_distribution<double> dist_coord(-440.0, 440.0);
+	std::uniform_real_distribution<double> dist_coord(-0.95, 0.95);
 	std::uniform_real_distribution<double> dist_scale(-3.0, 0.0);
 	std::uniform_real_distribution<double> dist_t(0.0, 1.0);
-	std::uniform_real_distribution<double> dist_eps(1e-5, 1e-5);
+	std::uniform_real_distribution<double> dist_eps(1e-6, 1e-6);
 	std::uniform_int_distribution<uint32_t> dist_line(0, num_lines - 1);
 
 	auto RandomLine = [&]() {
 		Line line;
-		if(rng() & 1) {
+		if(false && (rng() & 1)) {
 			double y = dist_coord(rng);
 			line.m_v1 = Vertex(dist_coord(rng), y + dist_eps(rng));
 			line.m_v2 = Vertex(dist_coord(rng), y + dist_eps(rng));

@@ -48,7 +48,7 @@ private:
 
 		// vertex coordinates
 		Vertex m_vertex;
-		bool m_edge_down;
+		bool m_edge_forward;
 
 		// loop
 		SweepVertex *m_loop_prev, *m_loop_next;
@@ -98,14 +98,14 @@ private:
 	// The 'less than' operator for vertices. It returns whether a comes before b.
 	static bool CompareVertexVertex(SweepVertex *a, SweepVertex *b) {
 		// compare the X coordinates first
-		if(a->m_vertex.y() < b->m_vertex.y())
-			return true;
-		if(a->m_vertex.y() > b->m_vertex.y())
-			return false;
-		// if the Y coordinates are equal, compare the X coordinates (this simplifies a lot of edge cases)
 		if(a->m_vertex.x() < b->m_vertex.x())
 			return true;
 		if(a->m_vertex.x() > b->m_vertex.x())
+			return false;
+		// if the X coordinates are equal, compare the Y coordinates (this simplifies a lot of edge cases)
+		if(a->m_vertex.y() < b->m_vertex.y())
+			return true;
+		if(a->m_vertex.y() > b->m_vertex.y())
 			return false;
 		// The tie breaker can be anything, as long as it's consistent. The pointer value is unique,
 		// and in this case it's even deterministic because all vertices are in the same array.
@@ -117,7 +117,7 @@ private:
 
 		// get points
 		single_type a1_x, a1_y, a2_x, a2_y;
-		if(edge->m_edge_down) {
+		if(edge->m_edge_forward) {
 			a1_x = edge->m_vertex.x();
 			a1_y = edge->m_vertex.y();
 			a2_x = edge->m_vertex_next.x();
@@ -130,11 +130,11 @@ private:
 		}
 		single_type b_x = vertex->m_vertex.x();
 		single_type b_y = vertex->m_vertex.y();
-		assert(a1_y <= b_y);
-		assert(b_y <= a2_y);
+		assert(a1_x <= b_x);
+		assert(b_x <= a2_x);
 
 		// test
-		return NumericalEngine::OrientationTest(a1_x, a1_y, b_x, b_y, a2_x, a2_y);
+		return NumericalEngine::OrientationTest(a1_x, a1_y, a2_x, a2_y, b_x, b_y);
 
 	}
 
@@ -147,7 +147,7 @@ private:
 
 		// get points
 		single_type a1_x, a1_y, a2_x, a2_y, b1_x, b1_y, b2_x, b2_y;
-		if(edge1->m_edge_down) {
+		if(edge1->m_edge_forward) {
 			a1_x = edge1->m_vertex.x();
 			a1_y = edge1->m_vertex.y();
 			a2_x = edge1->m_vertex_next.x();
@@ -158,7 +158,7 @@ private:
 			a2_x = edge1->m_vertex.x();
 			a2_y = edge1->m_vertex.y();
 		}
-		if(edge2->m_edge_down) {
+		if(edge2->m_edge_forward) {
 			b1_x = edge2->m_vertex.x();
 			b1_y = edge2->m_vertex.y();
 			b2_x = edge2->m_vertex_next.x();
@@ -169,10 +169,10 @@ private:
 			b2_x = edge2->m_vertex.x();
 			b2_y = edge2->m_vertex.y();
 		}
-		assert(a1_y <= a2_y);
-		assert(a1_y <= b2_y);
-		assert(b1_y <= a2_y);
-		assert(b1_y <= b2_y);
+		assert(a1_x <= a2_x);
+		assert(a1_x <= b2_x);
+		assert(b1_x <= a2_x);
+		assert(b1_x <= b2_x);
 
 		// test
 		double_type res_x, res_y;
@@ -709,9 +709,9 @@ private:
 			// verify that the node has a lower y value than both childs
 			size_t child1 = i * 2 + 1, child2 = child1 + 1;
 			if(child1 < m_heap.size())
-				assert(m_heap[i]->m_heap_vertex.y() <= m_heap[child1]->m_heap_vertex.y());
+				assert(m_heap[i]->m_heap_vertex.x() <= m_heap[child1]->m_heap_vertex.x());
 			if(child2 < m_heap.size())
-				assert(m_heap[i]->m_heap_vertex.y() <= m_heap[child2]->m_heap_vertex.y());
+				assert(m_heap[i]->m_heap_vertex.x() <= m_heap[child2]->m_heap_vertex.x());
 
 		}
 
@@ -730,7 +730,7 @@ private:
 		// sift up
 		while(current != 0) {
 			size_t parent = (current - 1) / 2;
-			if(m_heap[parent]->m_heap_vertex.y() <= m_heap[current]->m_heap_vertex.y())
+			if(m_heap[parent]->m_heap_vertex.x() <= m_heap[current]->m_heap_vertex.x())
 				break;
 			std::swap(m_heap[parent], m_heap[current]);
 			m_heap[parent]->m_heap_index = parent;
@@ -759,7 +759,7 @@ private:
 		size_t start = current;
 		while(current != 0) {
 			size_t parent = (current - 1) / 2;
-			if(m_heap[parent]->m_heap_vertex.y() <= m_heap[current]->m_heap_vertex.y())
+			if(m_heap[parent]->m_heap_vertex.x() <= m_heap[current]->m_heap_vertex.x())
 				break;
 			std::swap(m_heap[parent], m_heap[current]);
 			m_heap[parent]->m_heap_index = parent;
@@ -771,15 +771,15 @@ private:
 		if(current == start) {
 			while(current * 2 + 1 < m_heap.size()) {
 				size_t child1 = current * 2 + 1, child2 = child1 + 1;
-				if(child2 < m_heap.size() && m_heap[child2]->m_heap_vertex.y() < m_heap[child1]->m_heap_vertex.y()) {
-					if(m_heap[current]->m_heap_vertex.y() <= m_heap[child2]->m_heap_vertex.y())
+				if(child2 < m_heap.size() && m_heap[child2]->m_heap_vertex.x() < m_heap[child1]->m_heap_vertex.x()) {
+					if(m_heap[current]->m_heap_vertex.x() <= m_heap[child2]->m_heap_vertex.x())
 						break;
 					std::swap(m_heap[current], m_heap[child2]);
 					m_heap[current]->m_heap_index = current;
 					m_heap[child2]->m_heap_index = child2;
 					current = child2;
 				} else {
-					if(m_heap[current]->m_heap_vertex.y() <= m_heap[child1]->m_heap_vertex.y())
+					if(m_heap[current]->m_heap_vertex.x() <= m_heap[child1]->m_heap_vertex.x())
 						break;
 					std::swap(m_heap[current], m_heap[child1]);
 					m_heap[current]->m_heap_index = current;
@@ -808,7 +808,7 @@ private:
 		int64_t winding_number = 0;
 		bool winding_rule = WindingEngine::WindingRule(winding_number);
 		for(SweepVertex *v = TreeFirst(); v != nullptr; v = TreeNext(v)) {
-			if(v->m_edge_down)
+			if(v->m_edge_forward)
 				winding_number -= v->m_winding_weight;
 			else
 				winding_number += v->m_winding_weight;
@@ -825,9 +825,6 @@ private:
 #endif
 
 	OutputVertex* AddOutputVertex(Vertex vertex, OutputVertex *next) {
-		if(vertex.x() == 0 && vertex.y() == 0) {
-			std::cerr << "AddOutputVertex is (0,0)" << std::endl;
-		}
 		if(m_output_vertex_pool_used == OUTPUT_VERTEX_POOL_SIZE) {
 			std::unique_ptr<OutputVertex[]> mem(new OutputVertex[OUTPUT_VERTEX_POOL_SIZE]);
 			m_output_vertex_pools.push_back(std::move(mem));
@@ -879,7 +876,7 @@ private:
 
 		// update winding numbers
 		v->m_winding_number = b->m_winding_number;
-		if(v->m_edge_down) {
+		if(v->m_edge_forward) {
 			b->m_winding_number += v->m_winding_weight;
 		} else {
 			b->m_winding_number -= v->m_winding_weight;
@@ -940,7 +937,7 @@ private:
 
 		// check the order of the edges
 		SweepVertex *edge1, *edge2;
-		if(NumericalEngine::OrientationTest(v->m_vertex.x(), v->m_vertex.y(), v->m_vertex_next.x(), v->m_vertex_next.y(), v->m_vertex_prev.x(), v->m_vertex_prev.y())) {
+		if(NumericalEngine::OrientationTest(v->m_vertex.x(), v->m_vertex.y(), v->m_vertex_prev.x(), v->m_vertex_prev.y(), v->m_vertex_next.x(), v->m_vertex_next.y())) {
 			edge1 = v->m_loop_prev;
 			edge2 = v;
 		} else {
@@ -959,7 +956,7 @@ private:
 
 		// update winding numbers
 		edge2->m_winding_number = (edge0 == nullptr)? 0 : edge0->m_winding_number;
-		if(edge2->m_edge_down) {
+		if(edge2->m_edge_forward) {
 			edge1->m_winding_number = edge2->m_winding_number + edge2->m_winding_weight;
 		} else {
 			edge1->m_winding_number = edge2->m_winding_number - edge2->m_winding_weight;
@@ -1178,7 +1175,7 @@ public:
 			SweepVertex *v = &m_vertex_pool[i];
 
 			// initialize properties
-			v->m_edge_down = CompareVertexVertex(v, v->m_loop_next);
+			v->m_edge_forward = CompareVertexVertex(v, v->m_loop_next);
 			v->m_vertex_prev = v->m_loop_prev->m_vertex;
 			v->m_vertex_next = v->m_loop_next->m_vertex;
 
@@ -1213,31 +1210,24 @@ public:
 			// process required intersections
 			for( ; ; ) {
 				SweepVertex *w = HeapTop();
-				//value_type nan = std::numeric_limits<value_type>::quiet_NaN();
-				//std::cerr << std::setprecision(18) << "heap=" << ((w == nullptr)? Vertex(nan, nan) : w->m_heap_vertex) << " vertex=" << v->m_vertex << std::endl;
-				if(w == nullptr || w->m_heap_vertex.y() > double_type(v->m_vertex.y()))
+				if(w == nullptr || w->m_heap_vertex.x() > double_type(v->m_vertex.x()))
 					break;
 				visualization_callback();
-				//std::cerr << "ProcessIntersection" << std::endl;
 				ProcessIntersection(w, Vertex(single_type(w->m_heap_vertex.x()), single_type(w->m_heap_vertex.y())));
 			}
 
 			// process the new vertex
 			visualization_callback();
-			if(v->m_loop_prev->m_edge_down) {
-				if(v->m_edge_down) {
-					//std::cerr << "ProcessRightVertex" << std::endl;
+			if(v->m_loop_prev->m_edge_forward) {
+				if(v->m_edge_forward) {
 					ProcessRightVertex(v);
 				} else {
-					//std::cerr << "ProcessStopVertex" << std::endl;
 					ProcessStopVertex(v);
 				}
 			} else {
-				if(v->m_edge_down) {
-					//std::cerr << "ProcessStartVertex" << std::endl;
+				if(v->m_edge_forward) {
 					ProcessStartVertex(v);
 				} else {
-					//std::cerr << "ProcessLeftVertex" << std::endl;
 					ProcessLeftVertex(v);
 				}
 			}
@@ -1257,7 +1247,7 @@ public:
 		if(result.m_has_current_vertex) {
 			SweepVertex *v = m_vertex_queue[m_current_vertex];
 			SweepVertex *w = HeapTop();
-			if(w == nullptr || w->m_heap_vertex.y() > v->m_vertex.y()) {
+			if(w == nullptr || w->m_heap_vertex.x() > v->m_vertex.x()) {
 				result.m_current_vertex = v->m_vertex;
 			} else {
 				result.m_current_vertex = Vertex(single_type(w->m_heap_vertex.x()), single_type(w->m_heap_vertex.y()));

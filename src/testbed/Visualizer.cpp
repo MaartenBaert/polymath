@@ -33,7 +33,7 @@ Visualizer::~Visualizer() {
 }
 
 QSize Visualizer::sizeHint() const {
-	return QSize(900, 900);
+	return QSize(600, 600);
 }
 
 void Visualizer::SetWrapper(std::unique_ptr<VisualizationWrapperBase> &&wrapper) {
@@ -63,13 +63,15 @@ void Visualizer::paintEvent(QPaintEvent* event) {
 
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.translate(width() / 2, height() / 2);
+
+	double scale = double(std::min(width() / 2, height() / 2));
 	if(m_zoom_active) {
-		painter.scale(10.0, 10.0);
-		painter.translate(width() / 2 - m_zoom_x, height() / 2 - m_zoom_y);
+		scale *= 10.0;
+		painter.translate((width() / 2 - m_zoom_x) * 10, (height() / 2 - m_zoom_y) * 10);
 	}
 
 	if(m_wrapper != nullptr) {
-		m_wrapper->Paint(painter);
+		m_wrapper->Paint(painter, scale);
 	}
 
 }

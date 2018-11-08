@@ -42,11 +42,11 @@ public:
 			double_type &res_x, double_type &res_y) {
 		double_type aa1_x = double_type(a1_x), aa1_y = double_type(a1_y), aa2_x = double_type(a2_x), aa2_y = double_type(a2_y);
 		double_type bb1_x = double_type(b1_x), bb1_y = double_type(b1_y), bb2_x = double_type(b2_x), bb2_y = double_type(b2_y);
-		if(a2_y < b2_y) {
+		if(a2_x < b2_x) {
 			double_type num = (bb2_x - bb1_x) * (aa2_y - bb1_y) - (bb2_y - bb1_y) * (aa2_x - bb1_x);
-			if(num < double_type(0)) {
+			if(num > double_type(0)) {
 				double_type den = (bb2_x - bb1_x) * (aa2_y - aa1_y) - (bb2_y - bb1_y) * (aa2_x - aa1_x);
-				if(den < double_type(0)) {
+				if(den > double_type(0)) {
 					double_type t = num / den;
 					res_x = aa2_x + (aa1_x - aa2_x) * t;
 					res_y = aa2_y + (aa1_y - aa2_y) * t;
@@ -58,9 +58,9 @@ public:
 			}
 		} else {
 			double_type num = (aa2_x - aa1_x) * (bb2_y - aa1_y) - (aa2_y - aa1_y) * (bb2_x - aa1_x);
-			if(num > double_type(0)) {
+			if(num < double_type(0)) {
 				double_type den = (aa2_x - aa1_x) * (bb2_y - bb1_y) - (aa2_y - aa1_y) * (bb2_x - bb1_x);
-				if(den > double_type(0)) {
+				if(den < double_type(0)) {
 					double_type t = num / den;
 					res_x = bb2_x + (bb1_x - bb2_x) * t;
 					res_y = bb2_y + (bb1_y - bb2_y) * t;

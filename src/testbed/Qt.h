@@ -9,6 +9,7 @@
 
 #include <QtGui>
 
+#include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QGridLayout>

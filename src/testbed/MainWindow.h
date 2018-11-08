@@ -8,7 +8,13 @@
 class MainWindow : public QMainWindow {
 	Q_OBJECT
 
-public:
+private:
+	enum Type {
+		TYPE_F32,
+		TYPE_F64,
+	};
+
+private:
 	typedef PolyMath::Vertex<double> Vertex;
 	typedef PolyMath::Polygon<Vertex> Polygon;
 	typedef PolyMath::Visualization<Vertex> Visualization;
@@ -16,10 +22,11 @@ public:
 private:
 	Polygon m_polygon;
 
+	QComboBox *m_combobox_type;
 	QSpinBox *m_spinbox_seed;
 	QSpinBox *m_spinbox_size;
 	QDoubleSpinBox *m_spinbox_angle;
-	Visualizer *m_visual;
+	Visualizer *m_visualizer;
 
 public:
 	MainWindow();
@@ -27,7 +34,7 @@ public:
 
 public slots:
 	void OnTestChanged();
-	void OnButtonSimplify();
+	void OnButtonVisualize();
 	void OnButtonBenchmark();
 	void OnButtonEdgeCases();
 

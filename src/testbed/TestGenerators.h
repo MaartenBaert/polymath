@@ -6,7 +6,6 @@ namespace TestGenerators {
 
 typedef PolyMath::Vertex<double> Vertex;
 typedef PolyMath::Polygon<Vertex> Polygon;
-typedef PolyMath::Visualization<Vertex> Visualization;
 
 enum DualGridType {
 	DUALGRID_DEFAULT,
