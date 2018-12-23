@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PolyMath.h"
+#include "polymath/PolyMath.h"
 
 namespace Wrappers {
 

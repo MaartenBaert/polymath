@@ -1,18 +1,23 @@
 #pragma once
 
 #include "Common.h"
+
 #include "Vertex.h"
 
 namespace PolyMath {
 
-template<class Vertex, typename WindingWeight=int64_t>
+template<class Vertex, typename WindingNumber = int32_t>
 class Polygon {
+
+public:
+	typedef Vertex VertexType;
+	typedef WindingNumber WindingNumberType;
 
 private:
 	struct Loop {
 		size_t m_end;
-		WindingWeight m_winding_weight;
-		Loop(size_t end, WindingWeight winding_weight) : m_end(end), m_winding_weight(winding_weight) {}
+		WindingNumber m_winding_weight;
+		Loop(size_t end, WindingNumber winding_weight) : m_end(end), m_winding_weight(winding_weight) {}
 	};
 
 private:
@@ -69,6 +74,11 @@ public:
 		return *this;
 	}
 
+	friend Polygon& operator+(const Polygon &a, const Polygon &b) { return Polygon(a) += b; }
+	friend Polygon& operator+(Polygon &&a, const Polygon &b) { return  a += b; }
+	friend Polygon& operator-(const Polygon &a, const Polygon &b) { return Polygon(a) -= b; }
+	friend Polygon& operator-(Polygon &&a, const Polygon &b) { return  a -= b; }
+
 public:
 	inline void Clear() {
 		m_vertices.clear();
@@ -83,10 +93,10 @@ public:
 	inline void AddVertex(Vertex v) {
 		m_vertices.push_back(v);
 	}
-	inline void AddLoopEnd(WindingWeight winding_weight) {
+	inline void AddLoopEnd(WindingNumber winding_weight) {
 		m_loops.emplace_back(m_vertices.size(), winding_weight);
 	}
-	inline void AddLoop(const Vertex *vertices, size_t vertex_count, WindingWeight winding_weight) {
+	inline void AddLoop(const Vertex *vertices, size_t vertex_count, WindingNumber winding_weight) {
 		m_vertices.insert(m_vertices.end(), vertices, vertices + vertex_count);
 		AddLoopEnd(winding_weight);
 	}
@@ -116,7 +126,7 @@ public:
 		assert(i < m_loops.size());
 		return m_loops[i].m_end;
 	}
-	inline WindingWeight GetLoopWindingWeight(size_t i) const {
+	inline WindingNumber GetLoopWindingWeight(size_t i) const {
 		assert(i < m_loops.size());
 		return m_loops[i].m_winding_weight;
 	}

@@ -1,5 +1,6 @@
 #include "Visualizer.h"
-#include "PolyMath.h"
+
+#include "polymath/PolyMath.h"
 
 #include <chrono>
 #include <thread>
@@ -24,7 +25,6 @@ Visualizer::Visualizer(QWidget *parent)
 	m_zoom_y = 0;
 
 	setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-	setMouseTracking(true);
 
 }
 
@@ -41,12 +41,17 @@ void Visualizer::SetWrapper(std::unique_ptr<VisualizationWrapperBase> &&wrapper)
 	update();
 }
 
-void Visualizer::mousePressEvent(QMouseEvent* event) {
+void Visualizer::UpdateZoom(int x, int y) {
+	double scale = double(std::min(width() / 2, height() / 2));
+	m_zoom_active = true;
+	m_zoom_x = double(x - width() / 2) / scale;
+	m_zoom_y = double(y - height() / 2) / scale;
+	update();
+}
+
+void Visualizer::mousePressEvent(QMouseEvent *event) {
 	if(event->button() == Qt::LeftButton) {
-		m_zoom_active = true;
-		m_zoom_x = event->x();
-		m_zoom_y = event->y();
-		update();
+		UpdateZoom(event->x(), event->y());
 		event->accept();
 	}
 	if(event->button() == Qt::RightButton) {
@@ -56,7 +61,14 @@ void Visualizer::mousePressEvent(QMouseEvent* event) {
 	}
 }
 
-void Visualizer::paintEvent(QPaintEvent* event) {
+void Visualizer::mouseMoveEvent(QMouseEvent *event) {
+	if(event->buttons() & Qt::LeftButton) {
+		UpdateZoom(event->x(), event->y());
+		event->accept();
+	}
+}
+
+void Visualizer::paintEvent(QPaintEvent *event) {
 	Q_UNUSED(event);
 	QPainter painter(this);
 	painter.fillRect(0, 0, width(), height(), QColor(64, 64, 64));
@@ -67,11 +79,15 @@ void Visualizer::paintEvent(QPaintEvent* event) {
 	double scale = double(std::min(width() / 2, height() / 2));
 	if(m_zoom_active) {
 		scale *= 10.0;
-		painter.translate((width() / 2 - m_zoom_x) * 10, (height() / 2 - m_zoom_y) * 10);
+		painter.translate(-scale * m_zoom_x, -scale * m_zoom_y);
 	}
-
 	if(m_wrapper != nullptr) {
 		m_wrapper->Paint(painter, scale);
 	}
+
+	painter.resetTransform();
+	painter.setFont(font());
+	painter.setPen(QColor(192, 192, 192));
+	painter.drawText(5, 5, width() - 10, height() - 10, Qt::AlignLeft | Qt::AlignBottom, "Left-click to zoom in\nRight-click to reset view");
 
 }

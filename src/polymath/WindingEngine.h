@@ -4,25 +4,48 @@
 
 namespace PolyMath {
 
-class WindingEngine_Union {
-public:
-	static bool WindingRule(int64_t x) {
-		return (x > 0);
+template<typename WindingNumber = int32_t>
+struct WindingEngine_NonZero {
+
+	typedef WindingNumber WindingNumberType;
+
+	static bool WindingRule(WindingNumber x) {
+		return (x != 0);
 	}
+
 };
 
-class WindingEngine_Intersection {
-public:
-	static bool WindingRule(int64_t x) {
-		return (x > 1);
-	}
-};
+template<typename WindingNumber = int32_t>
+struct WindingEngine_EvenOdd {
 
-class WindingEngine_Xor {
-public:
-	static bool WindingRule(int64_t x) {
+	typedef WindingNumber WindingNumberType;
+
+	static bool WindingRule(WindingNumber x) {
 		return bool(x & 1);
 	}
+
+};
+
+template<typename WindingNumber = int32_t>
+struct WindingEngine_Positive {
+
+	typedef WindingNumber WindingNumberType;
+
+	static bool WindingRule(WindingNumber x) {
+		return (x > 0);
+	}
+
+};
+
+template<typename WindingNumber = int32_t>
+struct WindingEngine_Negative {
+
+	typedef WindingNumber WindingNumberType;
+
+	static bool WindingRule(WindingNumber x) {
+		return (x < 0);
+	}
+
 };
 
 }

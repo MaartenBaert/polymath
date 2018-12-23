@@ -29,13 +29,13 @@ struct Conversion {
 				boost_ring &ring = output[num++].outer();
 				ring.resize(n);
 				for(size_t j = 0; j < n; ++j) {
-					ring[j] = boost_point(F(vertices[j].x()), F(vertices[j].y()));
+					ring[j] = boost_point(F(vertices[j].x), F(vertices[j].y));
 				}
 			} else {
 				boost_ring ring;
 				ring.resize(n);
 				for(size_t j = 0; j < n; ++j) {
-					ring[j] = boost_point(F(vertices[j].x()), F(vertices[j].y()));
+					ring[j] = boost_point(F(vertices[j].x), F(vertices[j].y));
 				}
 				assert(num > 0);
 				output[num - 1].inners().push_back(ring);

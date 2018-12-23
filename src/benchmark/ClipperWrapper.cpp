@@ -1,6 +1,6 @@
 #include "ClipperWrapper.h"
 
-#include "clipper.hpp"
+#include "3rdparty/clipper.hpp"
 
 #include <cmath>
 
@@ -20,11 +20,11 @@ void PolyToClipper(const Polygon &input, ClipperLib::Polygons &output) {
 		ring.resize(n);
 		if(input.GetLoopWindingWeight(i) > 0) {
 			for(size_t j = 0; j < n; ++j) {
-				ring[j] = ClipperLib::IntPoint(lrint(vertices[j].x() * CLIPPER_SCALE), lrint(vertices[j].y() * CLIPPER_SCALE));
+				ring[j] = ClipperLib::IntPoint(lrint(vertices[j].x * CLIPPER_SCALE), lrint(vertices[j].y * CLIPPER_SCALE));
 			}
 		} else {
 			for(size_t j = 0; j < n; ++j) {
-				ring[n - 1 - j] = ClipperLib::IntPoint(lrint(vertices[j].x() * CLIPPER_SCALE), lrint(vertices[j].y() * CLIPPER_SCALE));
+				ring[n - 1 - j] = ClipperLib::IntPoint(lrint(vertices[j].x * CLIPPER_SCALE), lrint(vertices[j].y * CLIPPER_SCALE));
 			}
 		}
 	}

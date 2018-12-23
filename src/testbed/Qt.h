@@ -9,6 +9,7 @@
 
 #include <QtGui>
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
@@ -20,6 +21,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QStackedLayout>
 #include <QVBoxLayout>
 #include <QWidget>
 

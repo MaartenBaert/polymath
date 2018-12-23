@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.h"
+
 #include "Polygon.h"
 #include "PolygonPoint.h"
 #include "SweepEngine.h"
@@ -10,24 +11,31 @@
 
 namespace PolyMath {
 
-template<class Vertex>
-Polygon<Vertex> PolygonUnion(const Polygon<Vertex> &polygon) {
-	SweepEngine<Vertex, NumericalEngine<typename Vertex::value_type>, WindingEngine_Union> engine(polygon);
-	engine.Process(DummyVisualizationCallback);
+template<class Vertex, typename WindingNumber>
+Polygon<Vertex> PolygonSimplify_NonZero(const Polygon<Vertex, WindingNumber> &polygon) {
+	SweepEngine<Vertex, WindingEngine_NonZero<WindingNumber>> engine(polygon);
+	engine.Process();
 	return engine.Result();
 }
 
-template<class Vertex>
-Polygon<Vertex> PolygonIntersection(const Polygon<Vertex> &polygon) {
-	SweepEngine<Vertex, NumericalEngine<typename Vertex::value_type>, WindingEngine_Intersection> engine(polygon);
-	engine.Process(DummyVisualizationCallback);
+template<class Vertex, typename WindingNumber>
+Polygon<Vertex> PolygonSimplify_EvenOdd(const Polygon<Vertex, WindingNumber> &polygon) {
+	SweepEngine<Vertex, WindingEngine_EvenOdd<WindingNumber>> engine(polygon);
+	engine.Process();
 	return engine.Result();
 }
 
-template<class Vertex>
-Polygon<Vertex> PolygonXor(const Polygon<Vertex> &polygon) {
-	SweepEngine<Vertex, NumericalEngine<typename Vertex::value_type>, WindingEngine_Xor> engine(polygon);
-	engine.Process(DummyVisualizationCallback);
+template<class Vertex, typename WindingNumber>
+Polygon<Vertex> PolygonSimplify_Positive(const Polygon<Vertex, WindingNumber> &polygon) {
+	SweepEngine<Vertex, WindingEngine_Positive<WindingNumber>> engine(polygon);
+	engine.Process();
+	return engine.Result();
+}
+
+template<class Vertex, typename WindingNumber>
+Polygon<Vertex> PolygonSimplify_Negative(const Polygon<Vertex, WindingNumber> &polygon) {
+	SweepEngine<Vertex, WindingEngine_Negative<WindingNumber>> engine(polygon);
+	engine.Process();
 	return engine.Result();
 }
 

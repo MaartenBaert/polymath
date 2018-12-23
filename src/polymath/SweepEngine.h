@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.h"
+
 #include "NumericalEngine.h"
 #include "Polygon.h"
 #include "Vertex.h"
@@ -9,10 +10,6 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
-
-// TODO: remove
-#include <iomanip>
-#include <iostream>
 
 #define POLYMATH_VERIFY 0
 
@@ -26,17 +23,15 @@ inline void DummyVisualizationCallback() {
 	// nothing
 }
 
-template<class Vertex, class NumericalEngine, class WindingEngine>
+template<class Vertex, class WindingEngine>
 class SweepEngine {
 
 public:
-	typedef typename NumericalEngine::single_type single_type;
-	typedef typename NumericalEngine::double_type double_type;
-	typedef PolyMath::Vertex<single_type> SingleVertex;
-	typedef PolyMath::Vertex<double_type> DoubleVertex;
-
-public:
-	//static constexpr value_type INPUT_MAX = std::sqrt(std::numeric_limits<value_type>::max()) * value_type(0.25);
+	typedef PolyMath::NumericalEngine<typename Vertex::ValueType> NumericalEngine;
+	typedef typename NumericalEngine::SingleType SingleType;
+	typedef typename NumericalEngine::DoubleType DoubleType;
+	typedef PolyMath::Vertex<SingleType> SingleVertex;
+	typedef PolyMath::Vertex<DoubleType> DoubleVertex;
 
 private:
 	struct OutputVertex {
@@ -67,7 +62,7 @@ private:
 
 		// output
 		OutputVertex *m_output_vertex;
-		bool m_output_vertex_down;
+		bool m_output_vertex_forward;
 
 	};
 
@@ -98,14 +93,14 @@ private:
 	// The 'less than' operator for vertices. It returns whether a comes before b.
 	static bool CompareVertexVertex(SweepVertex *a, SweepVertex *b) {
 		// compare the X coordinates first
-		if(a->m_vertex.x() < b->m_vertex.x())
+		if(a->m_vertex.x < b->m_vertex.x)
 			return true;
-		if(a->m_vertex.x() > b->m_vertex.x())
+		if(a->m_vertex.x > b->m_vertex.x)
 			return false;
 		// if the X coordinates are equal, compare the Y coordinates (this simplifies a lot of edge cases)
-		if(a->m_vertex.y() < b->m_vertex.y())
+		if(a->m_vertex.y < b->m_vertex.y)
 			return true;
-		if(a->m_vertex.y() > b->m_vertex.y())
+		if(a->m_vertex.y > b->m_vertex.y)
 			return false;
 		// The tie breaker can be anything, as long as it's consistent. The pointer value is unique,
 		// and in this case it's even deterministic because all vertices are in the same array.
@@ -116,25 +111,25 @@ private:
 	static bool CompareEdgeVertex(SweepVertex *edge, SweepVertex *vertex) {
 
 		// get points
-		single_type a1_x, a1_y, a2_x, a2_y;
+		SingleType a1_x, a1_y, a2_x, a2_y;
 		if(edge->m_edge_forward) {
-			a1_x = edge->m_vertex.x();
-			a1_y = edge->m_vertex.y();
-			a2_x = edge->m_vertex_next.x();
-			a2_y = edge->m_vertex_next.y();
+			a1_x = edge->m_vertex.x;
+			a1_y = edge->m_vertex.y;
+			a2_x = edge->m_vertex_next.x;
+			a2_y = edge->m_vertex_next.y;
 		} else {
-			a1_x = edge->m_vertex_next.x();
-			a1_y = edge->m_vertex_next.y();
-			a2_x = edge->m_vertex.x();
-			a2_y = edge->m_vertex.y();
+			a1_x = edge->m_vertex_next.x;
+			a1_y = edge->m_vertex_next.y;
+			a2_x = edge->m_vertex.x;
+			a2_y = edge->m_vertex.y;
 		}
-		single_type b_x = vertex->m_vertex.x();
-		single_type b_y = vertex->m_vertex.y();
+		SingleType b_x = vertex->m_vertex.x;
+		SingleType b_y = vertex->m_vertex.y;
 		assert(a1_x <= b_x);
 		assert(b_x <= a2_x);
 
 		// test
-		return NumericalEngine::OrientationTest(a1_x, a1_y, a2_x, a2_y, b_x, b_y);
+		return NumericalEngine::OrientationTest(a1_x, a1_y, a2_x, a2_y, b_x, b_y, true);
 
 	}
 
@@ -146,28 +141,28 @@ private:
 			return false;
 
 		// get points
-		single_type a1_x, a1_y, a2_x, a2_y, b1_x, b1_y, b2_x, b2_y;
+		SingleType a1_x, a1_y, a2_x, a2_y, b1_x, b1_y, b2_x, b2_y;
 		if(edge1->m_edge_forward) {
-			a1_x = edge1->m_vertex.x();
-			a1_y = edge1->m_vertex.y();
-			a2_x = edge1->m_vertex_next.x();
-			a2_y = edge1->m_vertex_next.y();
+			a1_x = edge1->m_vertex.x;
+			a1_y = edge1->m_vertex.y;
+			a2_x = edge1->m_vertex_next.x;
+			a2_y = edge1->m_vertex_next.y;
 		} else {
-			a1_x = edge1->m_vertex_next.x();
-			a1_y = edge1->m_vertex_next.y();
-			a2_x = edge1->m_vertex.x();
-			a2_y = edge1->m_vertex.y();
+			a1_x = edge1->m_vertex_next.x;
+			a1_y = edge1->m_vertex_next.y;
+			a2_x = edge1->m_vertex.x;
+			a2_y = edge1->m_vertex.y;
 		}
 		if(edge2->m_edge_forward) {
-			b1_x = edge2->m_vertex.x();
-			b1_y = edge2->m_vertex.y();
-			b2_x = edge2->m_vertex_next.x();
-			b2_y = edge2->m_vertex_next.y();
+			b1_x = edge2->m_vertex.x;
+			b1_y = edge2->m_vertex.y;
+			b2_x = edge2->m_vertex_next.x;
+			b2_y = edge2->m_vertex_next.y;
 		} else {
-			b1_x = edge2->m_vertex_next.x();
-			b1_y = edge2->m_vertex_next.y();
-			b2_x = edge2->m_vertex.x();
-			b2_y = edge2->m_vertex.y();
+			b1_x = edge2->m_vertex_next.x;
+			b1_y = edge2->m_vertex_next.y;
+			b2_x = edge2->m_vertex.x;
+			b2_y = edge2->m_vertex.y;
 		}
 		assert(a1_x <= a2_x);
 		assert(a1_x <= b2_x);
@@ -175,7 +170,7 @@ private:
 		assert(b1_x <= b2_x);
 
 		// test
-		double_type res_x, res_y;
+		DoubleType res_x, res_y;
 		if(NumericalEngine::IntersectionTest(a1_x, a1_y, a2_x, a2_y, b1_x, b1_y, b2_x, b2_y, res_x, res_y)) {
 			result = DoubleVertex(res_x, res_y);
 			return true;
@@ -709,9 +704,9 @@ private:
 			// verify that the node has a lower y value than both childs
 			size_t child1 = i * 2 + 1, child2 = child1 + 1;
 			if(child1 < m_heap.size())
-				assert(m_heap[i]->m_heap_vertex.x() <= m_heap[child1]->m_heap_vertex.x());
+				assert(m_heap[i]->m_heap_vertex.x <= m_heap[child1]->m_heap_vertex.x);
 			if(child2 < m_heap.size())
-				assert(m_heap[i]->m_heap_vertex.x() <= m_heap[child2]->m_heap_vertex.x());
+				assert(m_heap[i]->m_heap_vertex.x <= m_heap[child2]->m_heap_vertex.x);
 
 		}
 
@@ -730,7 +725,7 @@ private:
 		// sift up
 		while(current != 0) {
 			size_t parent = (current - 1) / 2;
-			if(m_heap[parent]->m_heap_vertex.x() <= m_heap[current]->m_heap_vertex.x())
+			if(m_heap[parent]->m_heap_vertex.x <= m_heap[current]->m_heap_vertex.x)
 				break;
 			std::swap(m_heap[parent], m_heap[current]);
 			m_heap[parent]->m_heap_index = parent;
@@ -759,7 +754,7 @@ private:
 		size_t start = current;
 		while(current != 0) {
 			size_t parent = (current - 1) / 2;
-			if(m_heap[parent]->m_heap_vertex.x() <= m_heap[current]->m_heap_vertex.x())
+			if(m_heap[parent]->m_heap_vertex.x <= m_heap[current]->m_heap_vertex.x)
 				break;
 			std::swap(m_heap[parent], m_heap[current]);
 			m_heap[parent]->m_heap_index = parent;
@@ -771,15 +766,15 @@ private:
 		if(current == start) {
 			while(current * 2 + 1 < m_heap.size()) {
 				size_t child1 = current * 2 + 1, child2 = child1 + 1;
-				if(child2 < m_heap.size() && m_heap[child2]->m_heap_vertex.x() < m_heap[child1]->m_heap_vertex.x()) {
-					if(m_heap[current]->m_heap_vertex.x() <= m_heap[child2]->m_heap_vertex.x())
+				if(child2 < m_heap.size() && m_heap[child2]->m_heap_vertex.x < m_heap[child1]->m_heap_vertex.x) {
+					if(m_heap[current]->m_heap_vertex.x <= m_heap[child2]->m_heap_vertex.x)
 						break;
 					std::swap(m_heap[current], m_heap[child2]);
 					m_heap[current]->m_heap_index = current;
 					m_heap[child2]->m_heap_index = child2;
 					current = child2;
 				} else {
-					if(m_heap[current]->m_heap_vertex.x() <= m_heap[child1]->m_heap_vertex.x())
+					if(m_heap[current]->m_heap_vertex.x <= m_heap[child1]->m_heap_vertex.x)
 						break;
 					std::swap(m_heap[current], m_heap[child1]);
 					m_heap[current]->m_heap_index = current;
@@ -809,9 +804,9 @@ private:
 		bool winding_rule = WindingEngine::WindingRule(winding_number);
 		for(SweepVertex *v = TreeFirst(); v != nullptr; v = TreeNext(v)) {
 			if(v->m_edge_forward)
-				winding_number -= v->m_winding_weight;
-			else
 				winding_number += v->m_winding_weight;
+			else
+				winding_number -= v->m_winding_weight;
 			assert(v->m_winding_number == winding_number);
 			bool new_winding_rule = WindingEngine::WindingRule(winding_number);
 			if(winding_rule != new_winding_rule) {
@@ -877,15 +872,15 @@ private:
 		// update winding numbers
 		v->m_winding_number = b->m_winding_number;
 		if(v->m_edge_forward) {
-			b->m_winding_number += v->m_winding_weight;
-		} else {
 			b->m_winding_number -= v->m_winding_weight;
+		} else {
+			b->m_winding_number += v->m_winding_weight;
 		}
 
 		// if both edges have output vertices, combine them
 		if(b->m_output_vertex != nullptr && v->m_output_vertex != nullptr) {
-			assert(b->m_output_vertex_down != v->m_output_vertex_down);
-			if(b->m_output_vertex_down) {
+			assert(b->m_output_vertex_forward != v->m_output_vertex_forward);
+			if(b->m_output_vertex_forward) {
 				b->m_output_vertex->m_next = AddOutputVertex(intersection_vertex, v->m_output_vertex);
 			} else {
 				v->m_output_vertex->m_next = AddOutputVertex(intersection_vertex, b->m_output_vertex);
@@ -901,18 +896,18 @@ private:
 			if(w1 != w2) {
 				OutputVertex *output_vertex = AddOutputVertex(intersection_vertex, nullptr);
 				b->m_output_vertex = output_vertex;
-				b->m_output_vertex_down = w2;
+				b->m_output_vertex_forward = w2;
 				v->m_output_vertex = output_vertex;
-				v->m_output_vertex_down = w1;
+				v->m_output_vertex_forward = w1;
 			}
 
 		} else {
 
 			// if only one edge has an output vertex, propagate it
 			SweepVertex *v1 = (b->m_output_vertex == nullptr)? v : b;
-			SweepVertex *v2 = (WindingEngine::WindingRule(b->m_winding_number) == v1->m_output_vertex_down)? v : b;
+			SweepVertex *v2 = (WindingEngine::WindingRule(b->m_winding_number) == v1->m_output_vertex_forward)? v : b;
 			if(v1 != v2) {
-				if(v1->m_output_vertex_down) {
+				if(v1->m_output_vertex_forward) {
 					OutputVertex *output_vertex = AddOutputVertex(intersection_vertex, nullptr);
 					v1->m_output_vertex->m_next = output_vertex;
 					v1->m_output_vertex = nullptr;
@@ -922,7 +917,7 @@ private:
 					v1->m_output_vertex = nullptr;
 					v2->m_output_vertex = output_vertex;
 				}
-				v2->m_output_vertex_down = v1->m_output_vertex_down;
+				v2->m_output_vertex_forward = v1->m_output_vertex_forward;
 			}
 
 		}
@@ -937,7 +932,7 @@ private:
 
 		// check the order of the edges
 		SweepVertex *edge1, *edge2;
-		if(NumericalEngine::OrientationTest(v->m_vertex.x(), v->m_vertex.y(), v->m_vertex_prev.x(), v->m_vertex_prev.y(), v->m_vertex_next.x(), v->m_vertex_next.y())) {
+		if(NumericalEngine::OrientationTest(v->m_vertex.x, v->m_vertex.y, v->m_vertex_prev.x, v->m_vertex_prev.y, v->m_vertex_next.x, v->m_vertex_next.y, true)) {
 			edge1 = v->m_loop_prev;
 			edge2 = v;
 		} else {
@@ -957,9 +952,9 @@ private:
 		// update winding numbers
 		edge2->m_winding_number = (edge0 == nullptr)? 0 : edge0->m_winding_number;
 		if(edge2->m_edge_forward) {
-			edge1->m_winding_number = edge2->m_winding_number + edge2->m_winding_weight;
-		} else {
 			edge1->m_winding_number = edge2->m_winding_number - edge2->m_winding_weight;
+		} else {
+			edge1->m_winding_number = edge2->m_winding_number + edge2->m_winding_weight;
 		}
 
 		// add output vertex
@@ -967,9 +962,9 @@ private:
 		if(w1 != w2) {
 			OutputVertex *output_vertex = AddOutputVertex(v->m_vertex, nullptr);
 			edge1->m_output_vertex = output_vertex;
-			edge1->m_output_vertex_down = w2;
+			edge1->m_output_vertex_forward = w2;
 			edge2->m_output_vertex = output_vertex;
-			edge2->m_output_vertex_down = w1;
+			edge2->m_output_vertex_forward = w1;
 		}
 
 #if POLYMATH_VERIFY
@@ -995,13 +990,13 @@ private:
 
 		// update output vertex
 		if(edge1->m_output_vertex != nullptr) {
-			if(edge1->m_output_vertex_down) {
+			if(edge1->m_output_vertex_forward) {
 				edge2->m_output_vertex = AddOutputVertex(v->m_vertex, nullptr);
 				edge1->m_output_vertex->m_next = edge2->m_output_vertex;
 			} else {
 				edge2->m_output_vertex = AddOutputVertex(v->m_vertex, edge1->m_output_vertex);
 			}
-			edge2->m_output_vertex_down = edge1->m_output_vertex_down;
+			edge2->m_output_vertex_forward = edge1->m_output_vertex_forward;
 		}
 
 #if POLYMATH_VERIFY
@@ -1027,13 +1022,13 @@ private:
 
 		// update output vertex
 		if(edge1->m_output_vertex != nullptr) {
-			if(edge1->m_output_vertex_down) {
+			if(edge1->m_output_vertex_forward) {
 				edge2->m_output_vertex = AddOutputVertex(v->m_vertex, nullptr);
 				edge1->m_output_vertex->m_next = edge2->m_output_vertex;
 			} else {
 				edge2->m_output_vertex = AddOutputVertex(v->m_vertex, edge1->m_output_vertex);
 			}
-			edge2->m_output_vertex_down = edge1->m_output_vertex_down;
+			edge2->m_output_vertex_forward = edge1->m_output_vertex_forward;
 		}
 
 #if POLYMATH_VERIFY
@@ -1085,8 +1080,8 @@ private:
 		// update output vertices
 		if(v1->m_output_vertex != nullptr) {
 			assert(v2->m_output_vertex != nullptr);
-			assert(v1->m_output_vertex_down != v2->m_output_vertex_down);
-			if(v1->m_output_vertex_down) {
+			assert(v1->m_output_vertex_forward != v2->m_output_vertex_forward);
+			if(v1->m_output_vertex_forward) {
 				v1->m_output_vertex->m_next = AddOutputVertex(v->m_vertex, v2->m_output_vertex);
 			} else {
 				v2->m_output_vertex->m_next = AddOutputVertex(v->m_vertex, v1->m_output_vertex);
@@ -1191,7 +1186,7 @@ public:
 			// initialize winding number
 			v->m_winding_number = 0;
 			v->m_output_vertex = nullptr;
-			v->m_output_vertex_down = false;
+			v->m_output_vertex_forward = false;
 
 		}
 
@@ -1200,8 +1195,8 @@ public:
 
 	}
 
-	template<typename VisualizationCallback>
-	void Process(VisualizationCallback &&visualization_callback) {
+	template<typename VisualizationCallback = void()>
+	void Process(VisualizationCallback &&visualization_callback = DummyVisualizationCallback) {
 
 		// iterate through sorted vertices
 		for(m_current_vertex = 0; m_current_vertex < m_vertex_queue.size(); ++m_current_vertex) {
@@ -1210,10 +1205,10 @@ public:
 			// process required intersections
 			for( ; ; ) {
 				SweepVertex *w = HeapTop();
-				if(w == nullptr || w->m_heap_vertex.x() > double_type(v->m_vertex.x()))
+				if(w == nullptr || w->m_heap_vertex.x > NumericalEngine::SingleToDouble(v->m_vertex.x))
 					break;
 				visualization_callback();
-				ProcessIntersection(w, Vertex(single_type(w->m_heap_vertex.x()), single_type(w->m_heap_vertex.y())));
+				ProcessIntersection(w, Vertex(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y)));
 			}
 
 			// process the new vertex
@@ -1247,10 +1242,10 @@ public:
 		if(result.m_has_current_vertex) {
 			SweepVertex *v = m_vertex_queue[m_current_vertex];
 			SweepVertex *w = HeapTop();
-			if(w == nullptr || w->m_heap_vertex.x() > v->m_vertex.x()) {
+			if(w == nullptr || w->m_heap_vertex.x > NumericalEngine::SingleToDouble(v->m_vertex.x)) {
 				result.m_current_vertex = v->m_vertex;
 			} else {
-				result.m_current_vertex = Vertex(single_type(w->m_heap_vertex.x()), single_type(w->m_heap_vertex.y()));
+				result.m_current_vertex = Vertex(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y));
 			}
 		}
 
@@ -1261,7 +1256,7 @@ public:
 			edge.m_edge_vertices[0] = v->m_vertex;
 			edge.m_edge_vertices[1] = v->m_loop_next->m_vertex;
 			edge.m_has_intersection = (v->m_heap_index != INDEX_NONE);
-			edge.m_intersection_vertex = Vertex(single_type(v->m_heap_vertex.x()), single_type(v->m_heap_vertex.y()));
+			edge.m_intersection_vertex = Vertex(NumericalEngine::DoubleToSingle(v->m_heap_vertex.x), NumericalEngine::DoubleToSingle(v->m_heap_vertex.y));
 			edge.m_winding_number = v->m_winding_number;
 		}
 

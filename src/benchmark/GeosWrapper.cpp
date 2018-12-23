@@ -5,6 +5,7 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
+#define USE_UNSTABLE_GEOS_CPP_API
 #include <geos/geom/Coordinate.h>
 #include <geos/geom/CoordinateArraySequence.h>
 #include <geos/geom/CoordinateSequence.h>
@@ -45,9 +46,9 @@ void PolyToGeos(const Polygon& input, geos::geom::MultiPolygon *&output, geos::g
 		size_t n = input.GetLoopVertexCount(i);
 		geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
 		for(size_t j = 0; j < n; ++j) {
-			cl->add(geos::geom::Coordinate(vertices[j].x(), vertices[j].y()));
+			cl->add(geos::geom::Coordinate(vertices[j].x, vertices[j].y));
 		}
-		cl->add(geos::geom::Coordinate(vertices[0].x(), vertices[0].y()));
+		cl->add(geos::geom::Coordinate(vertices[0].x, vertices[0].y));
 		geos::geom::LinearRing *lr = factory->createLinearRing(cl);
 		if(input.GetLoopWindingWeight(i) > 0) {
 			Flush();
@@ -92,7 +93,7 @@ double BenchmarkUnion(const Polygon &poly1, const Polygon &poly2, Polygon &resul
 
 	// init
 	geos::geom::PrecisionModel *pm = new geos::geom::PrecisionModel(geos::geom::PrecisionModel::FLOATING);
-	geos::geom::GeometryFactory::unique_ptr factory = geos::geom::GeometryFactory::create(pm, -1);
+	geos::geom::GeometryFactory::Ptr factory = geos::geom::GeometryFactory::create(pm, -1);
 	delete pm;
 
 	// import
