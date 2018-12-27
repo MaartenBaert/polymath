@@ -47,7 +47,7 @@ private:
 
 		// loop
 		SweepVertex *m_loop_prev, *m_loop_next;
-		Vertex m_vertex_prev, m_vertex_next;
+		//Vertex m_vertex_prev, m_vertex_next;
 
 		// tree
 		SweepVertex *m_tree_parent, *m_tree_left, *m_tree_right;
@@ -67,7 +67,7 @@ private:
 	};
 
 private:
-	static constexpr size_t OUTPUT_VERTEX_POOL_SIZE = 1024;
+	static constexpr size_t OUTPUT_VERTEX_BATCH_SIZE = 256;
 
 private:
 
@@ -85,8 +85,8 @@ private:
 	std::vector<SweepVertex*> m_heap;
 
 	// output vertices
-	std::vector<std::unique_ptr<OutputVertex[]>> m_output_vertex_pools;
-	size_t m_output_vertex_pool_used;
+	std::vector<std::unique_ptr<OutputVertex[]>> m_output_vertex_batches;
+	size_t m_output_vertex_batch_used;
 
 private:
 
@@ -115,11 +115,11 @@ private:
 		if(edge->m_edge_forward) {
 			a1_x = edge->m_vertex.x;
 			a1_y = edge->m_vertex.y;
-			a2_x = edge->m_vertex_next.x;
-			a2_y = edge->m_vertex_next.y;
+			a2_x = edge->m_loop_next->m_vertex.x;
+			a2_y = edge->m_loop_next->m_vertex.y;
 		} else {
-			a1_x = edge->m_vertex_next.x;
-			a1_y = edge->m_vertex_next.y;
+			a1_x = edge->m_loop_next->m_vertex.x;
+			a1_y = edge->m_loop_next->m_vertex.y;
 			a2_x = edge->m_vertex.x;
 			a2_y = edge->m_vertex.y;
 		}
@@ -145,22 +145,22 @@ private:
 		if(edge1->m_edge_forward) {
 			a1_x = edge1->m_vertex.x;
 			a1_y = edge1->m_vertex.y;
-			a2_x = edge1->m_vertex_next.x;
-			a2_y = edge1->m_vertex_next.y;
+			a2_x = edge1->m_loop_next->m_vertex.x;
+			a2_y = edge1->m_loop_next->m_vertex.y;
 		} else {
-			a1_x = edge1->m_vertex_next.x;
-			a1_y = edge1->m_vertex_next.y;
+			a1_x = edge1->m_loop_next->m_vertex.x;
+			a1_y = edge1->m_loop_next->m_vertex.y;
 			a2_x = edge1->m_vertex.x;
 			a2_y = edge1->m_vertex.y;
 		}
 		if(edge2->m_edge_forward) {
 			b1_x = edge2->m_vertex.x;
 			b1_y = edge2->m_vertex.y;
-			b2_x = edge2->m_vertex_next.x;
-			b2_y = edge2->m_vertex_next.y;
+			b2_x = edge2->m_loop_next->m_vertex.x;
+			b2_y = edge2->m_loop_next->m_vertex.y;
 		} else {
-			b1_x = edge2->m_vertex_next.x;
-			b1_y = edge2->m_vertex_next.y;
+			b1_x = edge2->m_loop_next->m_vertex.x;
+			b1_y = edge2->m_loop_next->m_vertex.y;
 			b2_x = edge2->m_vertex.x;
 			b2_y = edge2->m_vertex.y;
 		}
@@ -820,15 +820,15 @@ private:
 #endif
 
 	OutputVertex* AddOutputVertex(Vertex vertex, OutputVertex *next) {
-		if(m_output_vertex_pool_used == OUTPUT_VERTEX_POOL_SIZE) {
-			std::unique_ptr<OutputVertex[]> mem(new OutputVertex[OUTPUT_VERTEX_POOL_SIZE]);
-			m_output_vertex_pools.push_back(std::move(mem));
-			m_output_vertex_pool_used = 0;
+		if(m_output_vertex_batch_used == OUTPUT_VERTEX_BATCH_SIZE) {
+			std::unique_ptr<OutputVertex[]> mem(new OutputVertex[OUTPUT_VERTEX_BATCH_SIZE]);
+			m_output_vertex_batches.push_back(std::move(mem));
+			m_output_vertex_batch_used = 0;
 		}
-		OutputVertex *v = m_output_vertex_pools.back().get() + m_output_vertex_pool_used;
+		OutputVertex *v = m_output_vertex_batches.back().get() + m_output_vertex_batch_used;
 		v->m_vertex = vertex;
 		v->m_next = next;
-		++m_output_vertex_pool_used;
+		++m_output_vertex_batch_used;
 		return v;
 	}
 
@@ -932,7 +932,7 @@ private:
 
 		// check the order of the edges
 		SweepVertex *edge1, *edge2;
-		if(NumericalEngine::OrientationTest(v->m_vertex.x, v->m_vertex.y, v->m_vertex_prev.x, v->m_vertex_prev.y, v->m_vertex_next.x, v->m_vertex_next.y, true)) {
+		if(NumericalEngine::OrientationTest(v->m_vertex.x, v->m_vertex.y, v->m_loop_prev->m_vertex.x, v->m_loop_prev->m_vertex.y, v->m_loop_next->m_vertex.x, v->m_loop_next->m_vertex.y, true)) {
 			edge1 = v->m_loop_prev;
 			edge2 = v;
 		} else {
@@ -1103,7 +1103,7 @@ public:
 		// initialize
 		m_current_vertex = 0;
 		m_tree_root = nullptr;
-		m_output_vertex_pool_used = OUTPUT_VERTEX_POOL_SIZE;
+		m_output_vertex_batch_used = OUTPUT_VERTEX_BATCH_SIZE;
 
 		// count the total number of vertices
 		size_t total_vertices = 0;
@@ -1171,8 +1171,6 @@ public:
 
 			// initialize properties
 			v->m_edge_forward = CompareVertexVertex(v, v->m_loop_next);
-			v->m_vertex_prev = v->m_loop_prev->m_vertex;
-			v->m_vertex_next = v->m_loop_next->m_vertex;
 
 			// initialize binary search tree
 			v->m_tree_parent = nullptr;
@@ -1185,6 +1183,8 @@ public:
 
 			// initialize winding number
 			v->m_winding_number = 0;
+
+			// initialize output
 			v->m_output_vertex = nullptr;
 			v->m_output_vertex_forward = false;
 
@@ -1261,9 +1261,9 @@ public:
 		}
 
 		// output polygon
-		for(size_t i = 0; i < m_output_vertex_pools.size(); ++i) {
-			OutputVertex *pool = m_output_vertex_pools[i].get();
-			size_t pool_size = (i == m_output_vertex_pools.size() - 1)? m_output_vertex_pool_used : OUTPUT_VERTEX_POOL_SIZE;
+		for(size_t i = 0; i < m_output_vertex_batches.size(); ++i) {
+			OutputVertex *pool = m_output_vertex_batches[i].get();
+			size_t pool_size = (i == m_output_vertex_batches.size() - 1)? m_output_vertex_batch_used : OUTPUT_VERTEX_BATCH_SIZE;
 			for(size_t j = 0; j < pool_size; ++j) {
 				OutputVertex *v = pool + j;
 				if(v->m_next != nullptr) {
@@ -1283,12 +1283,12 @@ public:
 
 		// reserve space for all output vertices
 		result.Clear();
-		result.ReserveVertices(m_output_vertex_pools.size() * OUTPUT_VERTEX_POOL_SIZE + m_output_vertex_pool_used - OUTPUT_VERTEX_POOL_SIZE);
+		result.ReserveVertices(m_output_vertex_batches.size() * OUTPUT_VERTEX_BATCH_SIZE + m_output_vertex_batch_used - OUTPUT_VERTEX_BATCH_SIZE);
 
 		// fill polygon with output vertex data
-		for(size_t i = 0; i < m_output_vertex_pools.size(); ++i) {
-			OutputVertex *pool = m_output_vertex_pools[i].get();
-			size_t pool_size = (i == m_output_vertex_pools.size() - 1)? m_output_vertex_pool_used : OUTPUT_VERTEX_POOL_SIZE;
+		for(size_t i = 0; i < m_output_vertex_batches.size(); ++i) {
+			OutputVertex *pool = m_output_vertex_batches[i].get();
+			size_t pool_size = (i == m_output_vertex_batches.size() - 1)? m_output_vertex_batch_used : OUTPUT_VERTEX_BATCH_SIZE;
 			for(size_t j = 0; j < pool_size; ++j) {
 				OutputVertex *v = pool + j;
 				if(v->m_next != nullptr) {
