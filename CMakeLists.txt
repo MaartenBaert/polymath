@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 project(polymath VERSION 0.0.0)
 
-option(WIDEMATH_ENABLE_ASM "Allow architecture-specific assembly instructions or intrinsics for better performance." TRUE)
+option(WIDEMATH_ENABLE_ASM "Allow architecture-specific assembly instructions or intrinsics for better performance." ON)
 
 include(FeatureSummary)
 

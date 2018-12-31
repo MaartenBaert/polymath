@@ -47,8 +47,9 @@ private:
 	Polygon m_polygon;
 
 	// settings
-	QComboBox *m_settings_type_combobox;
 	QSpinBox *m_settings_seed_spinbox;
+	QComboBox *m_settings_type_combobox;
+	QCheckBox *m_settings_fusion_checkbox;
 
 	// test
 	QComboBox *m_test_type_combobox;

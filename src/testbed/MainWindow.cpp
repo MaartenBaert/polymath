@@ -56,6 +56,67 @@ struct Conversion {
 
 	}
 
+	static void EdgeCases(size_t num_tests, size_t num_probes) {
+
+		double eps = TestGenerators::TypeConverter<F>::Epsilon();
+
+		std::mt19937_64 rng(UINT64_C(0xc0d9e78ec6150647));
+		std::uniform_real_distribution<double> dist_t(0.0, 1.0);
+		std::uniform_real_distribution<double> dist_eps(-eps, eps);
+
+		auto flags = std::cerr.flags();
+		std::cerr << std::scientific;
+
+		double probe_max_dist = 0.0;
+		size_t probe_errors = 0;
+		for(size_t seed = 0; seed < num_tests; ++seed) {
+
+			// generate polygon
+			Polygon poly = TestGenerators::EdgeCases(seed, 5, 10, 2.0 * eps);
+
+			// process
+			Polygon2 poly_conv = TestGenerators::TypeConverter<F>::ConvertPolygonToType(poly);
+			PolyMath::SweepEngine<Vertex2, PolyMath::WindingEngine_EvenOdd<typename Polygon2::WindingNumberType>> engine(poly_conv);
+			engine.Process();
+			Polygon2 result_conv = engine.Result();
+			Polygon result = TestGenerators::TypeConverter<F>::ConvertPolygonFromType(result_conv);
+
+			// probe
+			for(size_t j = 0; j < num_probes; ++j) {
+				bool swap = false; //rng() & 1;
+				Polygon &poly1 = (swap)? result : poly;
+				Polygon &poly2 = (swap)? poly : result;
+				size_t loop = std::uniform_int_distribution<size_t>(0, poly1.GetLoopCount() - 1)(rng);
+				Vertex *vertices = poly1.GetLoopVertices(loop);
+				size_t vertex_count = poly1.GetLoopVertexCount(loop);
+				size_t k = std::uniform_int_distribution<size_t>(0, vertex_count - 1)(rng);
+				Vertex v1 = vertices[k], v2 = vertices[(k + 1) % vertex_count];
+				double t = dist_t(rng);
+				Vertex point = {
+					v1.x + (v2.x - v1.x) * t + dist_eps(rng),
+					v1.y + (v2.y - v1.y) * t + dist_eps(rng),
+				};
+				int64_t w1 = PolyMath::PolygonPointWindingNumber(poly1, point);
+				int64_t w2 = PolyMath::PolygonPointWindingNumber(poly2, point);
+				if((w1 & 1) != (w2 & 1)) {
+					double dist = PolyMath::PolygonPointEdgeDistance(poly2, point);
+					if(dist > 3.0 * eps) {
+						std::cerr << "seed=" << seed << " dist=" << (dist / eps) << " point=" << point << std::endl;
+					}
+					probe_max_dist = std::max(probe_max_dist, dist);
+					++probe_errors;
+				}
+			}
+
+		}
+
+		std::cerr << "Probe eps: " << eps << std::endl;
+		std::cerr << "Probe max distance: " << (probe_max_dist / eps) << " eps" << std::endl;
+		std::cerr << "Probe errors: " << probe_errors << " / " << (num_tests * num_probes) << std::endl;
+		std::cerr.flags(flags);
+
+	}
+
 };
 
 QStackedLayoutFixed::~QStackedLayoutFixed() {
@@ -75,19 +136,22 @@ MainWindow::MainWindow() {
 
 	QGroupBox *groupbox_settings = new QGroupBox("Settings", centralwidget);
 	{
-		m_settings_type_combobox = new QComboBox(groupbox_settings);
-		m_settings_type_combobox->addItems({"Int 8-bit", "Int 16-bit", "Int 32-bit", "Int 64-bit", "Float 32-bit", "Float 64-bit"});
-		m_settings_type_combobox->setCurrentIndex(VALUETYPE_F32);
 		m_settings_seed_spinbox = new QSpinBox(groupbox_settings);
 		m_settings_seed_spinbox->setRange(0, 999999);
 		m_settings_seed_spinbox->setValue(0);
+		m_settings_type_combobox = new QComboBox(groupbox_settings);
+		m_settings_type_combobox->addItems({"Int 8-bit", "Int 16-bit", "Int 32-bit", "Int 64-bit", "Float 32-bit", "Float 64-bit"});
+		m_settings_type_combobox->setCurrentIndex(VALUETYPE_F32);
+		m_settings_fusion_checkbox = new QCheckBox("Fusion", groupbox_settings);
 
-		connect(m_settings_type_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
 		connect(m_settings_seed_spinbox, SIGNAL(valueChanged(int)), this, SLOT(OnTestChanged()));
+		connect(m_settings_type_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
+		connect(m_settings_fusion_checkbox, SIGNAL(stateChanged(int)), this, SLOT(OnTestChanged()));
 
 		QFormLayout *layout = new QFormLayout(groupbox_settings);
 		layout->addRow("Type", m_settings_type_combobox);
 		layout->addRow("Seed", m_settings_seed_spinbox);
+		layout->addRow(m_settings_fusion_checkbox);
 	}
 	QGroupBox *groupbox_test = new QGroupBox("Test", centralwidget);
 	{
@@ -238,8 +302,9 @@ double MainWindow::GetEpsilon(MainWindow::ValueType type) {
 
 void MainWindow::OnTestChanged() {
 
-	ValueType valuetype = ValueType(m_settings_type_combobox->currentIndex());
-	uint64_t seed = uint64_t(m_settings_seed_spinbox->value());
+	uint64_t settings_seed = uint64_t(m_settings_seed_spinbox->value());
+	ValueType settings_type = ValueType(m_settings_type_combobox->currentIndex());
+	bool settings_fusion = m_settings_fusion_checkbox->isChecked();
 
 	TestType testtype = TestType(m_test_type_combobox->currentIndex());
 	m_test_stackedlayout->setCurrentIndex(testtype);
@@ -251,7 +316,7 @@ void MainWindow::OnTestChanged() {
 			double dualgrid_angle = m_test_dualgrid_angle_spinbox->value();
 			bool dualgrid_holes = m_test_dualgrid_holes_checkbox->isChecked();
 			Polygon inputs[2];
-			TestGenerators::DualGrid(seed, dualgrid_type, dualgrid_size, dualgrid_angle, dualgrid_holes, inputs);
+			TestGenerators::DualGrid(settings_seed, dualgrid_type, dualgrid_size, dualgrid_angle, dualgrid_holes, inputs);
 			m_polygon = inputs[0];
 			m_polygon += inputs[1];
 			break;
@@ -259,14 +324,14 @@ void MainWindow::OnTestChanged() {
 		case TESTTYPE_ORTHOGONAL: {
 			uint32_t orthogonal_lines = uint32_t(m_test_orthogonal_lines_spinbox->value());
 			uint32_t orthogonal_polygons = uint32_t(m_test_orthogonal_polygons_spinbox->value());
-			m_polygon = TestGenerators::Orthogonal(seed, orthogonal_lines, orthogonal_polygons);
+			m_polygon = TestGenerators::Orthogonal(settings_seed, orthogonal_lines, orthogonal_polygons);
 			break;
 		}
 		case TESTTYPE_EDGECASES: {
 			uint32_t edgecases_lines = uint32_t(m_test_edgecases_lines_spinbox->value());
 			uint32_t edgecases_polygons = uint32_t(m_test_edgecases_polygons_spinbox->value());
-			double epsilon = m_test_edgecases_epsilon_spinbox->value() * GetEpsilon(valuetype);
-			m_polygon = TestGenerators::EdgeCases(seed, edgecases_lines, edgecases_polygons, epsilon);
+			double edgecases_epsilon = m_test_edgecases_epsilon_spinbox->value();
+			m_polygon = TestGenerators::EdgeCases(settings_seed, edgecases_lines, edgecases_polygons, edgecases_epsilon * GetEpsilon(settings_type));
 			break;
 		}
 		case TESTTYPE_STAR: {
@@ -276,7 +341,7 @@ void MainWindow::OnTestChanged() {
 		}
 	}
 
-	switch(valuetype) {
+	switch(settings_type) {
 		case VALUETYPE_I8 : Conversion<int8_t >::Process(m_polygon, m_visualizer); break;
 		case VALUETYPE_I16: Conversion<int16_t>::Process(m_polygon, m_visualizer); break;
 		case VALUETYPE_I32: Conversion<int32_t>::Process(m_polygon, m_visualizer); break;
@@ -303,59 +368,16 @@ void MainWindow::OnButtonVisualize() {
 
 void MainWindow::OnButtonEdgeCases() {
 
-	std::mt19937_64 rng(UINT64_C(0xc0d9e78ec6150647));
-	std::uniform_real_distribution<double> dist_t(0.0, 1.0);
-	std::uniform_real_distribution<double> dist_eps(-1e-4, 1e-4);
+	size_t num_tests = 1000, num_probes = 100;
 
-	size_t num_tests = 10000, num_probes = 100;
-
-	auto flags = std::cerr.flags();
-	std::cerr << std::scientific;
-
-	double probe_max_dist = 0.0;
-	size_t probe_errors = 0;
-	for(size_t i = 0; i < num_tests; ++i) {
-
-		// generate polygon
-		uint64_t seed = i;
-		Polygon poly = TestGenerators::EdgeCases(seed, 3, 6, 1e-12);
-
-		// process
-		PolyMath::SweepEngine<Vertex, PolyMath::WindingEngine_Positive<Polygon::WindingNumberType>> engine(poly);
-		engine.Process();
-		Polygon result = engine.Result();
-
-		// probe
-		for(size_t j = 0; j < num_probes; ++j) {
-			bool swap = rng() & 1;
-			Polygon &poly1 = (swap)? poly : result;
-			Polygon &poly2 = (swap)? result : poly;
-			size_t loop = std::uniform_int_distribution<size_t>(0, poly1.GetLoopCount() - 1)(rng);
-			Vertex *vertices = poly1.GetLoopVertices(loop);
-			size_t vertex_count = poly1.GetLoopVertexCount(loop);
-			size_t k = std::uniform_int_distribution<size_t>(0, vertex_count - 1)(rng);
-			Vertex v1 = vertices[k], v2 = vertices[(k + 1) % vertex_count];
-			double t = dist_t(rng);
-			Vertex point = {
-				v1.x + (v2.x - v1.x) * t + dist_eps(rng),
-				v1.y + (v2.y - v1.y) * t + dist_eps(rng),
-			};
-			int64_t w1 = PolyMath::PolygonPointWindingNumber(poly1, point);
-			int64_t w2 = PolyMath::PolygonPointWindingNumber(poly2, point);
-			if((w1 & 1) != (w2 & 1)) {
-				double dist = PolyMath::PolygonPointEdgeDistance(poly2, point);
-				if(dist > 3.0) {
-					std::cerr << "seed=" << seed << " dist=" << dist << " point=" << point << std::endl;
-				}
-				probe_max_dist = std::max(probe_max_dist, dist);
-				++probe_errors;
-			}
-		}
-
+	ValueType type = ValueType(m_settings_type_combobox->currentIndex());
+	switch(type) {
+		case VALUETYPE_I8 : Conversion<int8_t >::EdgeCases(num_tests, num_probes); break;
+		case VALUETYPE_I16: Conversion<int16_t>::EdgeCases(num_tests, num_probes); break;
+		case VALUETYPE_I32: Conversion<int32_t>::EdgeCases(num_tests, num_probes); break;
+		case VALUETYPE_I64: Conversion<int64_t>::EdgeCases(num_tests, num_probes); break;
+		case VALUETYPE_F32: Conversion<float  >::EdgeCases(num_tests, num_probes); break;
+		case VALUETYPE_F64: Conversion<double >::EdgeCases(num_tests, num_probes); break;
 	}
-
-	std::cerr << "Probe max distance: " << probe_max_dist << std::endl;
-	std::cerr << "Probe errors: " << probe_errors << " / " << (num_tests * num_probes) << std::endl;
-	std::cerr.flags(flags);
 
 }

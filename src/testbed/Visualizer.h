@@ -124,8 +124,8 @@ public:
 			for(typename Visualization::SweepEdge &edge : m_visualization.m_sweep_edges) {
 				Vertex &a = edge.m_edge_vertices[0], &b = edge.m_edge_vertices[1];
 
-				double div = double(b.x) - double(a.x);
-				double cy = (div == 0.0)? double(a.y) : double(a.y) + (double(b.y) - double(a.y)) * (double(m_visualization.m_current_vertex.x) - double(a.x)) / div;
+				double div = double(a.x) - double(b.x);
+				double cy = (div == 0.0)? double(b.y) : double(b.y) + (double(a.y) - double(b.y)) * (double(m_visualization.m_current_vertex.x) - double(b.x)) / div;
 				if(cy_prev != -std::numeric_limits<double>::max()) {
 					QString text = QString::number(winding_number);
 					int w = fm.width(text) + 4, h = fm.height() + 4;
