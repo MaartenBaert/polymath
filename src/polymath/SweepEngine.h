@@ -66,7 +66,6 @@ private:
 	struct SweepEdge {
 
 		// vertices
-		SweepVertex *m_sweep_vertex_first, *m_sweep_vertex_last;
 		Vertex m_vertex_first, m_vertex_last;
 
 		// tree
@@ -152,10 +151,6 @@ private:
 
 	// Calculates the intersection between two edges.
 	static bool IntersectEdgeEdge(SweepEdge *edge1, SweepEdge *edge2, DoubleVertex &result) {
-
-		// skip edges that are already connected
-		if(edge1->m_sweep_vertex_first == edge2->m_sweep_vertex_first || edge1->m_sweep_vertex_last == edge2->m_sweep_vertex_last)
-			return false;
 
 		// get points
 		SingleType a1_x = edge1->m_vertex_first.x;
@@ -953,6 +948,21 @@ private:
 
 	void ProcessStartVertex(SweepVertex *vertex) {
 
+		// add sweep edges
+		SweepEdge *edge1, *edge2;
+		edge1 = AddSweepEdge();
+		edge1->m_vertex_first = vertex->m_vertex;
+		edge1->m_vertex_last = vertex->m_loop_prev->m_vertex;
+		edge1->m_winding_weight = -vertex->m_winding_weight;
+		edge2 = AddSweepEdge();
+		edge2->m_vertex_first = vertex->m_vertex;
+		edge2->m_vertex_last = vertex->m_loop_next->m_vertex;
+		edge2->m_winding_weight = vertex->m_winding_weight;
+
+		// set vertex pointers
+		vertex->m_loop_prev->m_sweep_edge = edge1;
+		vertex->m_sweep_edge = edge2;
+
 		// check the order of the edges
 		SingleType a_x = vertex->m_vertex.x;
 		SingleType a_y = vertex->m_vertex.y;
@@ -960,24 +970,9 @@ private:
 		SingleType b_y = vertex->m_loop_prev->m_vertex.y;
 		SingleType c_x = vertex->m_loop_next->m_vertex.x;
 		SingleType c_y = vertex->m_loop_next->m_vertex.y;
-		bool order = NumericalEngine::OrientationTest(a_x, a_y, b_x, b_y, c_x, c_y, true);
-		SweepVertex *v1 = (order)? vertex->m_loop_prev : vertex->m_loop_next;
-		SweepVertex *v2 = (order)? vertex->m_loop_next : vertex->m_loop_prev;
-
-		// add sweep edges
-		SweepEdge *edge1, *edge2;
-		edge1 = AddSweepEdge();
-		edge1->m_sweep_vertex_first = vertex;
-		edge1->m_sweep_vertex_last = v1;
-		edge1->m_vertex_first = vertex->m_vertex;
-		edge1->m_vertex_last = v1->m_vertex;
-		edge2 = AddSweepEdge();
-		edge2->m_sweep_vertex_first = vertex;
-		edge2->m_sweep_vertex_last = v2;
-		edge2->m_vertex_first = vertex->m_vertex;
-		edge2->m_vertex_last = v2->m_vertex;
-		v1->m_sweep_edge = edge1;
-		v2->m_sweep_edge = edge2;
+		if(!NumericalEngine::OrientationTest(a_x, a_y, b_x, b_y, c_x, c_y, true)) {
+			std::swap(edge1, edge2);
+		}
 
 		// insert edges into tree
 		TreeInsert(edge1, vertex);
@@ -990,9 +985,7 @@ private:
 
 		// update winding numbers
 		int64_t winding_number = (edge0 == nullptr)? 0 : edge0->m_winding_number;
-		edge1->m_winding_weight = (order)? -vertex->m_winding_weight : vertex->m_winding_weight;
 		edge1->m_winding_number = winding_number + edge1->m_winding_weight;
-		edge2->m_winding_weight = (order)? vertex->m_winding_weight : -vertex->m_winding_weight;
 		edge2->m_winding_number = winding_number;
 
 		// add output vertex
@@ -1018,13 +1011,19 @@ private:
 	void ProcessMiddleVertex(SweepVertex *vertex) {
 
 		// update edge pointer
-		SweepVertex *vertex_next = (vertex->m_edge_forward)? vertex->m_loop_next : vertex->m_loop_prev;
-		SweepEdge *edge = vertex->m_sweep_edge;
-		vertex_next->m_sweep_edge = edge;
+		SweepVertex *vertex_next;
+		SweepEdge *edge;
+		if(vertex->m_edge_forward) {
+			vertex_next = vertex->m_loop_next;
+			edge = vertex->m_loop_prev->m_sweep_edge;
+			vertex->m_sweep_edge = edge;
+		} else {
+			vertex_next = vertex->m_loop_prev;
+			edge = vertex->m_sweep_edge;
+			vertex->m_loop_prev->m_sweep_edge = edge;
+		}
 
 		// update vertex pointers
-		edge->m_sweep_vertex_first = vertex;
-		edge->m_sweep_vertex_last = vertex_next;
 		edge->m_vertex_first = vertex->m_vertex;
 		edge->m_vertex_last = vertex_next->m_vertex;
 
@@ -1057,7 +1056,7 @@ private:
 
 		// The two edges are supposed to be neighbours in the tree, but due to rounding errors it is possible that there are other edges in between.
 		// Also, we don't know which edge is on the left side. So we first need to search in both directions until we find the other edge.
-		SweepEdge *edge = vertex->m_sweep_edge, *edge1 = edge, *edge2 = edge;
+		SweepEdge *edge1 = vertex->m_loop_prev->m_sweep_edge, *edge2 = vertex->m_loop_prev->m_sweep_edge;
 		for( ; ; ) {
 
 			// one step left
@@ -1066,12 +1065,12 @@ private:
 				do {
 					edge2 = TreeNext(edge2);
 					assert(edge2 != nullptr);
-				} while(edge2->m_sweep_vertex_last != vertex);
-				edge1 = edge;
+				} while(edge2 != vertex->m_sweep_edge);
+				edge1 = vertex->m_loop_prev->m_sweep_edge;
 				break;
 			}
-			if(edge1->m_sweep_vertex_last == vertex) {
-				edge2 = edge;
+			if(edge1 == vertex->m_sweep_edge) {
+				edge2 = vertex->m_loop_prev->m_sweep_edge;
 				break;
 			}
 
@@ -1081,12 +1080,12 @@ private:
 				do {
 					edge1 = TreePrevious(edge1);
 					assert(edge1 != nullptr);
-				} while(edge1->m_sweep_vertex_last != vertex);
-				edge2 = edge;
+				} while(edge1 != vertex->m_sweep_edge);
+				edge2 = vertex->m_loop_prev->m_sweep_edge;
 				break;
 			}
-			if(edge2->m_sweep_vertex_last == vertex) {
-				edge1 = edge;
+			if(edge2 == vertex->m_sweep_edge) {
+				edge1 = vertex->m_loop_prev->m_sweep_edge;
 				break;
 			}
 
