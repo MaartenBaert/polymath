@@ -11,7 +11,7 @@ typedef PolyMath::Vertex<int64_t> Vertex_I64;
 typedef PolyMath::Polygon<int64_t> Polygon_I64;
 
 template<class Polygon>
-Polygon PolygonImport(const std::vector<std::pair<pybind11::array_t<typename Polygon::VertexType::ValueType>, typename Polygon::WindingNumberType>> &loops) {
+Polygon PolygonImport(const std::vector<std::pair<pybind11::array_t<typename Polygon::VertexType::ValueType>, typename Polygon::WindingWeightType>> &loops) {
 	Polygon p;
 	for(auto &loop : loops) {
 		auto data = loop.first.template unchecked<2>();
@@ -26,8 +26,8 @@ Polygon PolygonImport(const std::vector<std::pair<pybind11::array_t<typename Pol
 }
 
 template<class Polygon>
-std::vector<std::pair<pybind11::array_t<typename Polygon::VertexType::ValueType>, typename Polygon::WindingNumberType>> PolygonExport(const Polygon& p) {
-	std::vector<std::pair<pybind11::array_t<typename Polygon::VertexType::ValueType>, typename Polygon::WindingNumberType>> loops;
+std::vector<std::pair<pybind11::array_t<typename Polygon::VertexType::ValueType>, typename Polygon::WindingWeightType>> PolygonExport(const Polygon& p) {
+	std::vector<std::pair<pybind11::array_t<typename Polygon::VertexType::ValueType>, typename Polygon::WindingWeightType>> loops;
 	for(size_t i = 0; i < p.loops.size(); ++i) {
 		const typename Polygon::VertexType *v = p.GetLoopVertices(i);
 		size_t n = p.GetLoopVertexCount(i);

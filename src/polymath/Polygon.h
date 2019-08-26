@@ -8,18 +8,18 @@
 
 namespace PolyMath {
 
-template<typename T, typename WindingNumber = int32_t>
+template<typename T, typename W = int32_t>
 struct Polygon {
 
 	typedef T ValueType;
 	typedef Vertex<T> VertexType;
-	typedef WindingNumber WindingNumberType;
+	typedef W WindingWeightType;
 
 	struct Loop {
 		size_t end;
-		WindingNumber weight;
+		WindingWeightType weight;
 		Loop() {}
-		Loop(size_t end, WindingNumber weight) : end(end), weight(weight) {}
+		Loop(size_t end, WindingWeightType weight) : end(end), weight(weight) {}
 	};
 
 	std::vector<VertexType> vertices;
@@ -105,7 +105,7 @@ struct Polygon {
 	void AddVertex(VertexType v) {
 		vertices.push_back(v);
 	}
-	void AddLoopEnd(WindingNumber winding_weight) {
+	void AddLoopEnd(WindingWeightType winding_weight) {
 		loops.emplace_back(vertices.size(), winding_weight);
 	}
 

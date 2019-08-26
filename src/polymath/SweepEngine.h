@@ -34,12 +34,12 @@ template<typename T, class WindingEngine>
 class SweepEngine {
 
 public:
+	typedef T ValueType;
 	typedef Vertex<T> VertexType;
-	typedef PolyMath::NumericalEngine<T> NumericalEngine;
-	typedef typename NumericalEngine::SingleType SingleType;
-	typedef typename NumericalEngine::DoubleType DoubleType;
-	typedef PolyMath::Vertex<SingleType> SingleVertex;
-	typedef PolyMath::Vertex<DoubleType> DoubleVertex;
+	typedef typename NumericalEngine<T>::DoubleType DoubleValueType;
+	typedef Vertex<DoubleValueType> DoubleVertexType;
+	typedef typename WindingEngine::WindingNumberType WindingNumberType;
+	typedef typename WindingEngine::WindingWeightType WindingWeightType;
 
 private:
 	struct SweepEdge;
@@ -53,7 +53,7 @@ private:
 
 		// vertex data
 		VertexType m_vertex;
-		int64_t m_winding_weight;
+		WindingWeightType m_winding_weight;
 
 		// loop
 		SweepVertex *m_loop_prev, *m_loop_next;
@@ -74,11 +74,12 @@ private:
 		bool m_tree_red;
 
 		// heap
-		DoubleVertex m_heap_vertex;
+		DoubleVertexType m_heap_vertex;
 		size_t m_heap_index;
 
 		// winding number
-		int64_t m_winding_weight, m_winding_number;
+		WindingWeightType m_winding_weight;
+		WindingNumberType m_winding_number;
 
 		// output
 		OutputVertex *m_output_vertex;
@@ -136,41 +137,41 @@ private:
 	static bool CompareEdgeVertex(SweepEdge *edge, SweepVertex *vertex) {
 
 		// get points
-		SingleType a1_x = edge->m_vertex_first.x;
-		SingleType a1_y = edge->m_vertex_first.y;
-		SingleType a2_x = edge->m_vertex_last.x;
-		SingleType a2_y = edge->m_vertex_last.y;
-		SingleType b_x = vertex->m_vertex.x;
-		SingleType b_y = vertex->m_vertex.y;
+		ValueType a1_x = edge->m_vertex_first.x;
+		ValueType a1_y = edge->m_vertex_first.y;
+		ValueType a2_x = edge->m_vertex_last.x;
+		ValueType a2_y = edge->m_vertex_last.y;
+		ValueType b_x = vertex->m_vertex.x;
+		ValueType b_y = vertex->m_vertex.y;
 		assert(a1_x <= b_x);
 		assert(b_x <= a2_x);
 
 		// test
-		return NumericalEngine::OrientationTest(a1_x, a1_y, a2_x, a2_y, b_x, b_y, true);
+		return NumericalEngine<T>::OrientationTest(a1_x, a1_y, a2_x, a2_y, b_x, b_y, true);
 
 	}
 
 	// Calculates the intersection between two edges.
-	static bool IntersectEdgeEdge(SweepEdge *edge1, SweepEdge *edge2, DoubleVertex &result) {
+	static bool IntersectEdgeEdge(SweepEdge *edge1, SweepEdge *edge2, DoubleVertexType &result) {
 
 		// get points
-		SingleType a1_x = edge1->m_vertex_first.x;
-		SingleType a1_y = edge1->m_vertex_first.y;
-		SingleType a2_x = edge1->m_vertex_last.x;
-		SingleType a2_y = edge1->m_vertex_last.y;
-		SingleType b1_x = edge2->m_vertex_first.x;
-		SingleType b1_y = edge2->m_vertex_first.y;
-		SingleType b2_x = edge2->m_vertex_last.x;
-		SingleType b2_y = edge2->m_vertex_last.y;
+		ValueType a1_x = edge1->m_vertex_first.x;
+		ValueType a1_y = edge1->m_vertex_first.y;
+		ValueType a2_x = edge1->m_vertex_last.x;
+		ValueType a2_y = edge1->m_vertex_last.y;
+		ValueType b1_x = edge2->m_vertex_first.x;
+		ValueType b1_y = edge2->m_vertex_first.y;
+		ValueType b2_x = edge2->m_vertex_last.x;
+		ValueType b2_y = edge2->m_vertex_last.y;
 		assert(a1_x <= a2_x);
 		assert(a1_x <= b2_x);
 		assert(b1_x <= a2_x);
 		assert(b1_x <= b2_x);
 
 		// test
-		DoubleType res_x, res_y;
-		if(NumericalEngine::IntersectionTest(a1_x, a1_y, a2_x, a2_y, b1_x, b1_y, b2_x, b2_y, res_x, res_y)) {
-			result = DoubleVertex(res_x, res_y);
+		DoubleValueType res_x, res_y;
+		if(NumericalEngine<T>::IntersectionTest(a1_x, a1_y, a2_x, a2_y, b1_x, b1_y, b2_x, b2_y, res_x, res_y)) {
+			result = DoubleVertexType(res_x, res_y);
 			return true;
 		}
 		return false;
@@ -818,7 +819,7 @@ private:
 	}
 
 	void WindingNumberVerify() {
-		int64_t winding_number = 0;
+		WindingNumberType winding_number = 0;
 		bool w1 = WindingEngine::WindingRule(winding_number);
 		for(SweepEdge *edge = TreeFirst(); edge != nullptr; edge = TreeNext(edge)) {
 			winding_number += edge->m_winding_weight;
@@ -965,13 +966,13 @@ private:
 		vertex->m_sweep_edge = edge2;
 
 		// check the order of the edges
-		SingleType a_x = vertex->m_vertex.x;
-		SingleType a_y = vertex->m_vertex.y;
-		SingleType b_x = vertex->m_loop_prev->m_vertex.x;
-		SingleType b_y = vertex->m_loop_prev->m_vertex.y;
-		SingleType c_x = vertex->m_loop_next->m_vertex.x;
-		SingleType c_y = vertex->m_loop_next->m_vertex.y;
-		if(!NumericalEngine::OrientationTest(a_x, a_y, b_x, b_y, c_x, c_y, true)) {
+		ValueType a_x = vertex->m_vertex.x;
+		ValueType a_y = vertex->m_vertex.y;
+		ValueType b_x = vertex->m_loop_prev->m_vertex.x;
+		ValueType b_y = vertex->m_loop_prev->m_vertex.y;
+		ValueType c_x = vertex->m_loop_next->m_vertex.x;
+		ValueType c_y = vertex->m_loop_next->m_vertex.y;
+		if(!NumericalEngine<T>::OrientationTest(a_x, a_y, b_x, b_y, c_x, c_y, true)) {
 			std::swap(edge1, edge2);
 		}
 
@@ -985,7 +986,7 @@ private:
 		UpdateIntersection(edge2, edge3);
 
 		// update winding numbers
-		int64_t winding_number = (edge0 == nullptr)? 0 : edge0->m_winding_number;
+		WindingNumberType winding_number = (edge0 == nullptr)? 0 : edge0->m_winding_number;
 		edge1->m_winding_number = winding_number + edge1->m_winding_weight;
 		edge2->m_winding_number = winding_number;
 
@@ -1167,7 +1168,7 @@ public:
 
 			// get loop
 			size_t end = polygon.loops[loop].end;
-			int64_t winding_weight = polygon.loops[loop].weight;
+			WindingWeightType winding_weight = polygon.loops[loop].weight;
 
 			// ignore polygons with less than three vertices
 			if(end - index < 3) {
@@ -1224,10 +1225,10 @@ public:
 			// process required intersections
 			for( ; ; ) {
 				SweepEdge *w = HeapTop();
-				if(w == nullptr || w->m_heap_vertex.x > NumericalEngine::SingleToDouble(v->m_vertex.x))
+				if(w == nullptr || w->m_heap_vertex.x > NumericalEngine<T>::SingleToDouble(v->m_vertex.x))
 					break;
 				visualization_callback();
-				ProcessIntersection(w, VertexType(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y)));
+				ProcessIntersection(w, VertexType(NumericalEngine<T>::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine<T>::DoubleToSingle(w->m_heap_vertex.y)));
 			}
 
 			// process the new vertex
@@ -1255,10 +1256,10 @@ public:
 		if(result.m_has_current_vertex) {
 			SweepVertex *v = m_vertex_queue[m_current_vertex];
 			SweepEdge *w = HeapTop();
-			if(w == nullptr || w->m_heap_vertex.x > NumericalEngine::SingleToDouble(v->m_vertex.x)) {
+			if(w == nullptr || w->m_heap_vertex.x > NumericalEngine<T>::SingleToDouble(v->m_vertex.x)) {
 				result.m_current_vertex = v->m_vertex;
 			} else {
-				result.m_current_vertex = VertexType(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y));
+				result.m_current_vertex = VertexType(NumericalEngine<T>::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine<T>::DoubleToSingle(w->m_heap_vertex.y));
 			}
 		}
 
@@ -1269,7 +1270,7 @@ public:
 			edge.m_edge_vertices[0] = w->m_vertex_first;
 			edge.m_edge_vertices[1] = w->m_vertex_last;
 			edge.m_has_intersection = (w->m_heap_index != INDEX_NONE);
-			edge.m_intersection_vertex = VertexType(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y));
+			edge.m_intersection_vertex = VertexType(NumericalEngine<T>::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine<T>::DoubleToSingle(w->m_heap_vertex.y));
 			edge.m_winding_number = w->m_winding_number;
 		}
 

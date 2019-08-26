@@ -11,30 +11,30 @@
 
 namespace PolyMath {
 
-template<typename T, typename WindingNumber>
-Polygon<T> PolygonSimplify_NonZero(const Polygon<T, WindingNumber> &polygon) {
-	SweepEngine<T, WindingEngine_NonZero<WindingNumber>> engine(polygon);
+template<typename T, typename WindingWeight>
+Polygon<T> PolygonSimplify_NonZero(const Polygon<T, WindingWeight> &polygon) {
+	SweepEngine<T, WindingEngine_NonZero<WindingWeight>> engine(polygon);
 	engine.Process();
 	return engine.Result();
 }
 
-template<typename T, typename WindingNumber>
-Polygon<T> PolygonSimplify_EvenOdd(const Polygon<T, WindingNumber> &polygon) {
-	SweepEngine<T, WindingEngine_EvenOdd<WindingNumber>> engine(polygon);
+template<typename T, typename WindingWeight>
+Polygon<T> PolygonSimplify_EvenOdd(const Polygon<T, WindingWeight> &polygon) {
+	SweepEngine<T, WindingEngine_EvenOdd<WindingWeight>> engine(polygon);
 	engine.Process();
 	return engine.Result();
 }
 
-template<typename T, typename WindingNumber>
-Polygon<T> PolygonSimplify_Positive(const Polygon<T, WindingNumber> &polygon) {
-	SweepEngine<T, WindingEngine_Positive<WindingNumber>> engine(polygon);
+template<typename T, typename WindingWeight>
+Polygon<T> PolygonSimplify_Positive(const Polygon<T, WindingWeight> &polygon) {
+	SweepEngine<T, WindingEngine_Positive<WindingWeight>> engine(polygon);
 	engine.Process();
 	return engine.Result();
 }
 
-template<typename T, typename WindingNumber>
-Polygon<T> PolygonSimplify_Negative(const Polygon<T, WindingNumber> &polygon) {
-	SweepEngine<T, WindingEngine_Negative<WindingNumber>> engine(polygon);
+template<typename T, typename WindingWeight>
+Polygon<T> PolygonSimplify_Negative(const Polygon<T, WindingWeight> &polygon) {
+	SweepEngine<T, WindingEngine_Negative<WindingWeight>> engine(polygon);
 	engine.Process();
 	return engine.Result();
 }
