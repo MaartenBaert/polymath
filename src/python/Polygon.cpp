@@ -1,6 +1,4 @@
-#include "polymath/Polygon.h"
-#include "polymath/SweepEngine.h"
-#include "polymath/WindingEngine.h"
+#include "polymath/PolyMath.h"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -10,7 +8,7 @@
 #include <sstream>
 
 typedef PolyMath::Vertex<int64_t> Vertex_I64;
-typedef PolyMath::Polygon<Vertex_I64> Polygon_I64;
+typedef PolyMath::Polygon<int64_t> Polygon_I64;
 
 template<class Polygon>
 Polygon PolygonImport(const std::vector<std::pair<pybind11::array_t<typename Polygon::VertexType::ValueType>, typename Polygon::WindingNumberType>> &loops) {
@@ -71,9 +69,6 @@ PYBIND11_MODULE(polymath, m) {
 			.def("add_loop_end", &Polygon_I64::AddLoopEnd)
 			.def("__str__", [](Polygon_I64 &p) -> std::string { std::ostringstream ss; ss << p; return ss.str(); });
 
-	m.def("Simplify_Nonzero", [](const Polygon_I64 &p) -> Polygon_I64 { PolyMath::SweepEngine<Vertex_I64, PolyMath::WindingEngine_NonZero<>> engine(p); engine.Process(); return engine.Result(); });
-	m.def("Simplify_EvenOdd", [](const Polygon_I64 &p) -> Polygon_I64 { PolyMath::SweepEngine<Vertex_I64, PolyMath::WindingEngine_EvenOdd<>> engine(p); engine.Process(); return engine.Result(); });
-	m.def("Simplify_Positive", [](const Polygon_I64 &p) -> Polygon_I64 { PolyMath::SweepEngine<Vertex_I64, PolyMath::WindingEngine_Positive<>> engine(p); engine.Process(); return engine.Result(); });
-	m.def("Simplify_Negative", [](const Polygon_I64 &p) -> Polygon_I64 { PolyMath::SweepEngine<Vertex_I64, PolyMath::WindingEngine_Negative<>> engine(p); engine.Process(); return engine.Result(); });
+	m.def("PolygonSimplify_NonZero", &PolyMath::PolygonSimplify_NonZero<int64_t, int32_t>);
 
 }

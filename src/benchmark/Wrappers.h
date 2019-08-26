@@ -5,6 +5,6 @@
 namespace Wrappers {
 
 typedef PolyMath::Vertex<double> Vertex;
-typedef PolyMath::Polygon<Vertex> Polygon;
+typedef PolyMath::Polygon<double> Polygon;
 
 }

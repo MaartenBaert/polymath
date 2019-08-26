@@ -12,7 +12,7 @@ template<typename T>
 struct Conversion {
 
 	typedef PolyMath::Vertex<T> Vertex2;
-	typedef PolyMath::Polygon<Vertex2> Polygon2;
+	typedef PolyMath::Polygon<T> Polygon2;
 
 	static double BenchmarkUnion(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops) {
 

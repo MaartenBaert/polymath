@@ -16,14 +16,14 @@ struct Conversion {
 	typedef TestGenerators::Polygon Polygon;
 
 	typedef PolyMath::Vertex<F> Vertex2;
-	typedef PolyMath::Polygon<Vertex2> Polygon2;
-	typedef PolyMath::Visualization<Vertex2> Visualization2;
+	typedef PolyMath::Polygon<F> Polygon2;
+	typedef PolyMath::Visualization<F> Visualization2;
 
 	static void Process(const Polygon &input, Visualizer *visualizer) {
 
 		Polygon2 poly = TestGenerators::TypeConverter<F>::ConvertPolygonToType(input);
 
-		PolyMath::SweepEngine<Vertex2, PolyMath::WindingEngine_Positive<typename Polygon2::WindingNumberType>> engine(poly);
+		PolyMath::SweepEngine<F, PolyMath::WindingEngine_Positive<typename Polygon2::WindingNumberType>> engine(poly);
 		engine.Process();
 
 		std::unique_ptr<VisualizationWrapper<F>> wrapper(new VisualizationWrapper<F>());
@@ -37,7 +37,7 @@ struct Conversion {
 
 		Polygon2 poly = TestGenerators::TypeConverter<F>::ConvertPolygonToType(input);
 
-		PolyMath::SweepEngine<Vertex2, PolyMath::WindingEngine_Positive<typename Polygon2::WindingNumberType>> engine(poly);
+		PolyMath::SweepEngine<F, PolyMath::WindingEngine_Positive<typename Polygon2::WindingNumberType>> engine(poly);
 		engine.Process([&](){
 			std::unique_ptr<VisualizationWrapper<F>> wrapper(new VisualizationWrapper<F>());
 			wrapper->SetPolygonInput(poly);
@@ -76,7 +76,7 @@ struct Conversion {
 
 			// process
 			Polygon2 poly_conv = TestGenerators::TypeConverter<F>::ConvertPolygonToType(poly);
-			PolyMath::SweepEngine<Vertex2, PolyMath::WindingEngine_EvenOdd<typename Polygon2::WindingNumberType>> engine(poly_conv);
+			PolyMath::SweepEngine<F, PolyMath::WindingEngine_EvenOdd<typename Polygon2::WindingNumberType>> engine(poly_conv);
 			engine.Process();
 			Polygon2 result_conv = engine.Result();
 			Polygon result = TestGenerators::TypeConverter<F>::ConvertPolygonFromType(result_conv);

@@ -6,7 +6,7 @@ namespace TestGenerators {
 
 // types used for test generation
 typedef PolyMath::Vertex<double> Vertex;
-typedef PolyMath::Polygon<Vertex> Polygon;
+typedef PolyMath::Polygon<double> Polygon;
 
 // type converter base class
 template<typename T, typename Enable = void> struct TypeConverterBase;
@@ -60,7 +60,7 @@ template<typename T>
 struct TypeConverter : TypeConverterBase<T> {
 
 	typedef PolyMath::Vertex<T> VertexType;
-	typedef PolyMath::Polygon<VertexType> PolygonType;
+	typedef PolyMath::Polygon<T> PolygonType;
 
 	static VertexType ConvertVertexToType(const Vertex &v) {
 		return VertexType(TypeConverterBase<T>::ConvertValueToType(v.x), TypeConverterBase<T>::ConvertValueToType(v.y));

@@ -2,24 +2,28 @@
 
 #include "Common.h"
 
+#include "Vertex.h"
+
 namespace PolyMath {
 
-template<class Vertex>
+template<typename T>
 struct Visualization {
 
+	typedef Vertex<T> VertexType;
+
 	struct SweepEdge {
-		Vertex m_edge_vertices[2];
+		VertexType m_edge_vertices[2];
 		bool m_has_intersection;
-		Vertex m_intersection_vertex;
+		VertexType m_intersection_vertex;
 		int64_t m_winding_number;
 	};
 
 	struct OutputEdge {
-		Vertex m_edge_vertices[2];
+		VertexType m_edge_vertices[2];
 	};
 
 	bool m_has_current_vertex;
-	Vertex m_current_vertex;
+	VertexType m_current_vertex;
 	std::vector<SweepEdge> m_sweep_edges;
 	std::vector<OutputEdge> m_output_edges;
 

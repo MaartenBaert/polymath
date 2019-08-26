@@ -30,11 +30,12 @@ inline void DummyVisualizationCallback() {
 	// nothing
 }
 
-template<class Vertex, class WindingEngine>
+template<typename T, class WindingEngine>
 class SweepEngine {
 
 public:
-	typedef PolyMath::NumericalEngine<typename Vertex::ValueType> NumericalEngine;
+	typedef Vertex<T> VertexType;
+	typedef PolyMath::NumericalEngine<T> NumericalEngine;
 	typedef typename NumericalEngine::SingleType SingleType;
 	typedef typename NumericalEngine::DoubleType DoubleType;
 	typedef PolyMath::Vertex<SingleType> SingleVertex;
@@ -44,14 +45,14 @@ private:
 	struct SweepEdge;
 
 	struct OutputVertex {
-		Vertex m_vertex;
+		VertexType m_vertex;
 		OutputVertex *m_next;
 	};
 
 	struct SweepVertex {
 
 		// vertex data
-		Vertex m_vertex;
+		VertexType m_vertex;
 		int64_t m_winding_weight;
 
 		// loop
@@ -66,7 +67,7 @@ private:
 	struct SweepEdge {
 
 		// vertices
-		Vertex m_vertex_first, m_vertex_last;
+		VertexType m_vertex_first, m_vertex_last;
 
 		// tree
 		SweepEdge *m_tree_parent, *m_tree_left, *m_tree_right;
@@ -833,7 +834,7 @@ private:
 
 #endif
 
-	OutputVertex* AddOutputVertex(Vertex vertex) {
+	OutputVertex* AddOutputVertex(VertexType vertex) {
 		if(m_output_vertex_batch_used == OUTPUT_VERTEX_BATCH_SIZE) {
 			std::unique_ptr<OutputVertex[]> mem(new OutputVertex[OUTPUT_VERTEX_BATCH_SIZE]);
 			m_output_vertex_batches.push_back(std::move(mem));
@@ -870,7 +871,7 @@ private:
 		}
 	}
 
-	void ProcessIntersection(SweepEdge *edge, Vertex intersection_vertex) {
+	void ProcessIntersection(SweepEdge *edge, VertexType intersection_vertex) {
 
 		// get surrounding edges
 		SweepEdge *edge1 = edge, *edge2 = TreeNext(edge);
@@ -1138,7 +1139,7 @@ private:
 
 public:
 
-	SweepEngine(const Polygon<Vertex> &polygon) {
+	SweepEngine(const Polygon<T> &polygon) {
 
 		// initialize
 		m_current_vertex = 0;
@@ -1226,7 +1227,7 @@ public:
 				if(w == nullptr || w->m_heap_vertex.x > NumericalEngine::SingleToDouble(v->m_vertex.x))
 					break;
 				visualization_callback();
-				ProcessIntersection(w, Vertex(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y)));
+				ProcessIntersection(w, VertexType(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y)));
 			}
 
 			// process the new vertex
@@ -1246,8 +1247,8 @@ public:
 
 	}
 
-	Visualization<Vertex> Visualize() {
-		Visualization<Vertex> result;
+	Visualization<T> Visualize() {
+		Visualization<T> result;
 
 		// sweepline
 		result.m_has_current_vertex = (m_current_vertex < m_vertex_queue.size());
@@ -1257,7 +1258,7 @@ public:
 			if(w == nullptr || w->m_heap_vertex.x > NumericalEngine::SingleToDouble(v->m_vertex.x)) {
 				result.m_current_vertex = v->m_vertex;
 			} else {
-				result.m_current_vertex = Vertex(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y));
+				result.m_current_vertex = VertexType(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y));
 			}
 		}
 
@@ -1268,7 +1269,7 @@ public:
 			edge.m_edge_vertices[0] = w->m_vertex_first;
 			edge.m_edge_vertices[1] = w->m_vertex_last;
 			edge.m_has_intersection = (w->m_heap_index != INDEX_NONE);
-			edge.m_intersection_vertex = Vertex(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y));
+			edge.m_intersection_vertex = VertexType(NumericalEngine::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine::DoubleToSingle(w->m_heap_vertex.y));
 			edge.m_winding_number = w->m_winding_number;
 		}
 
@@ -1290,8 +1291,8 @@ public:
 		return result;
 	}
 
-	Polygon<Vertex> Result() {
-		Polygon<Vertex> result;
+	Polygon<T> Result() {
+		Polygon<T> result;
 
 		// reserve space for all output vertices
 		result.vertices.reserve(m_output_vertex_batches.size() * OUTPUT_VERTEX_BATCH_SIZE + m_output_vertex_batch_used - OUTPUT_VERTEX_BATCH_SIZE);

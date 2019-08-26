@@ -18,8 +18,8 @@ class VisualizationWrapper : public VisualizationWrapperBase {
 
 private:
 	typedef PolyMath::Vertex<T> Vertex;
-	typedef PolyMath::Polygon<Vertex> Polygon;
-	typedef PolyMath::Visualization<Vertex> Visualization;
+	typedef PolyMath::Polygon<T> Polygon;
+	typedef PolyMath::Visualization<T> Visualization;
 
 private:
 	Polygon m_polygon_input, m_polygon_output;

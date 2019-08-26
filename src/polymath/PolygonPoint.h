@@ -10,13 +10,13 @@
 
 namespace PolyMath {
 
-template<class Vertex, BoundaryRule boundary_rule = BOUNDARYRULE_LAZY>
-int64_t PolygonPointWindingNumber(const Polygon<Vertex> &polygon, Vertex point) {
+template<typename T, BoundaryRule boundary_rule = BOUNDARYRULE_LAZY>
+int64_t PolygonPointWindingNumber(const Polygon<T> &polygon, Vertex<T> point) {
 
-	typedef PolyMath::NumericalEngine<typename Vertex::ValueType> NumericalEngine;
+	typedef PolyMath::NumericalEngine<T> NumericalEngine;
 
 	struct Helpers {
-		inline static bool CompareVertex(Vertex a, Vertex b) {
+		inline static bool CompareVertex(Vertex<T> a, Vertex<T> b) {
 			if(boundary_rule == BOUNDARYRULE_CLOSED || boundary_rule == BOUNDARYRULE_OPEN) {
 				if(a.x < b.x)
 					return true;
@@ -50,8 +50,8 @@ int64_t PolygonPointWindingNumber(const Polygon<Vertex> &polygon, Vertex point) 
 		for( ; index < end; ++index) {
 			bool state = Helpers::CompareVertex(point, polygon.vertices[index]);
 			if(state != prev_state) {
-				const Vertex &v1 = polygon.vertices[prev];
-				const Vertex &v2 = polygon.vertices[index];
+				const Vertex<T> &v1 = polygon.vertices[prev];
+				const Vertex<T> &v2 = polygon.vertices[index];
 				bool strict = (boundary_rule == BOUNDARYRULE_OPEN || (boundary_rule == BOUNDARYRULE_CONSISTENT && !state));
 				if(NumericalEngine::OrientationTest(v1.x, v1.y, v2.x, v2.y, point.x, point.y, strict) == state) {
 					if(state) {
@@ -70,12 +70,10 @@ int64_t PolygonPointWindingNumber(const Polygon<Vertex> &polygon, Vertex point) 
 	return winding_number;
 }
 
-template<class Vertex>
-typename Vertex::ValueType PolygonPointEdgeDistance(const Polygon<Vertex> &polygon, Vertex point) {
+template<class T>
+T PolygonPointEdgeDistance(const Polygon<T> &polygon, Vertex<T> point) {
 
-	typedef typename Vertex::ValueType value_type;
-
-	value_type best = std::numeric_limits<value_type>::max();
+	T best = std::numeric_limits<T>::max();
 	size_t index = 0;
 	for(size_t loop = 0; loop < polygon.loops.size(); ++loop) {
 
@@ -92,10 +90,10 @@ typename Vertex::ValueType PolygonPointEdgeDistance(const Polygon<Vertex> &polyg
 		// handle all vertices
 		size_t prev = end - 1;
 		for( ; index < end; ++index) {
-			const Vertex &v1 = polygon.vertices[prev];
-			const Vertex &v2 = polygon.vertices[index];
-			value_type pos = (point.x - v2.x) * (v1.x - v2.x) + (point.y - v2.y) * (v1.y - v2.y);
-			value_type len = Square(v1.x - v2.x) + Square(v1.y - v2.y);
+			const Vertex<T> &v1 = polygon.vertices[prev];
+			const Vertex<T> &v2 = polygon.vertices[index];
+			T pos = (point.x - v2.x) * (v1.x - v2.x) + (point.y - v2.y) * (v1.y - v2.y);
+			T len = Square(v1.x - v2.x) + Square(v1.y - v2.y);
 			if(pos > 0.0 && pos < len) {
 				best = std::min(best, Square((point.x - v2.x) * (v1.y - v2.y) - (point.y - v2.y) * (v1.x - v2.x)) / len);
 			} else {

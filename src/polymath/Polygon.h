@@ -8,10 +8,11 @@
 
 namespace PolyMath {
 
-template<class Vertex, typename WindingNumber = int32_t>
+template<typename T, typename WindingNumber = int32_t>
 struct Polygon {
 
-	typedef Vertex VertexType;
+	typedef T ValueType;
+	typedef Vertex<T> VertexType;
 	typedef WindingNumber WindingNumberType;
 
 	struct Loop {
@@ -21,21 +22,21 @@ struct Polygon {
 		Loop(size_t end, WindingNumber weight) : end(end), weight(weight) {}
 	};
 
-	std::vector<Vertex> vertices;
+	std::vector<VertexType> vertices;
 	std::vector<Loop> loops;
 
 	Polygon() = default;
 	Polygon(const Polygon &other) = default;
 	Polygon(Polygon &&other) = default;
 
-	Polygon(const std::vector<Vertex> &vertices, const std::vector<Loop> &loops)
+	Polygon(const std::vector<VertexType> &vertices, const std::vector<Loop> &loops)
 		: vertices(vertices), loops(loops) {}
-	Polygon(Vertex *vertices, size_t vertex_count, Loop *loops, size_t loop_count)
+	Polygon(VertexType *vertices, size_t vertex_count, Loop *loops, size_t loop_count)
 		: vertices(vertices, vertices + vertex_count), loops(loops, loops + loop_count) {}
 
-	Polygon(std::initializer_list<std::initializer_list<Vertex>> data) {
+	Polygon(std::initializer_list<std::initializer_list<VertexType>> data) {
 		for(auto loop : data) {
-			for(Vertex v : loop) {
+			for(VertexType v : loop) {
 				AddVertex(v);
 			}
 			AddLoopEnd(1);
@@ -45,10 +46,10 @@ struct Polygon {
 	Polygon& operator=(const Polygon &other) = default;
 	Polygon& operator=(Polygon &&other) = default;
 
-	Polygon& operator=(std::initializer_list<std::initializer_list<Vertex>> data) {
+	Polygon& operator=(std::initializer_list<std::initializer_list<VertexType>> data) {
 		Clear();
 		for(auto loop : data) {
-			for(Vertex v : loop) {
+			for(VertexType v : loop) {
 				AddVertex(v);
 			}
 			AddLoopEnd(1);
@@ -101,18 +102,18 @@ struct Polygon {
 		vertices.clear();
 		loops.clear();
 	}
-	void AddVertex(Vertex v) {
+	void AddVertex(VertexType v) {
 		vertices.push_back(v);
 	}
 	void AddLoopEnd(WindingNumber winding_weight) {
 		loops.emplace_back(vertices.size(), winding_weight);
 	}
 
-	Vertex* GetLoopVertices(size_t i) {
+	VertexType* GetLoopVertices(size_t i) {
 		assert(i < loops.size());
 		return (i == 0)? vertices.data() : vertices.data() + loops[i - 1].end;
 	}
-	const Vertex* GetLoopVertices(size_t i) const {
+	const VertexType* GetLoopVertices(size_t i) const {
 		assert(i < loops.size());
 		return (i == 0)? vertices.data() : vertices.data() + loops[i - 1].end;
 	}
@@ -128,7 +129,7 @@ struct Polygon {
 				if(i != 0)
 					stream << ", ";
 				stream << "Loop([";
-				const Vertex *vertices = p.GetLoopVertices(i);
+				const VertexType *vertices = p.GetLoopVertices(i);
 				size_t n = p.GetLoopVertexCount(i);
 				for(size_t j = 0; j < n; ++j) {
 					if(j != 0)
