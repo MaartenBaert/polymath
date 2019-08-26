@@ -128,14 +128,14 @@ public:
 				double cy = (div == 0.0)? double(b.y) : double(b.y) + (double(a.y) - double(b.y)) * (double(m_visualization.m_current_vertex.x) - double(b.x)) / div;
 				if(cy_prev != -std::numeric_limits<double>::max()) {
 					QString text = QString::number(winding_number);
-					int w = fm.width(text) + 4, h = fm.height() + 4;
+					int w = fm.horizontalAdvance(text) + 4, h = fm.height() + 4;
 					painter.setPen(QPen(QColor(255, 128, 128), 0));
 					painter.fillRect(sweep_position - w - 1, int(lrint((cy_prev + cy) / 2.0 * mult)) - h / 2, w, h, QColor(0, 0, 0, 128));
 					painter.drawText(sweep_position - w - 1, int(lrint((cy_prev + cy) / 2.0 * mult)) - h / 2, w, h, Qt::AlignHCenter | Qt::AlignVCenter, text);
 				}
 				{
 					QString text = QString::number(++num);
-					int w = fm.width(text) + 4, h = fm.height() + 4;
+					int w = fm.horizontalAdvance(text) + 4, h = fm.height() + 4;
 					painter.setPen(QPen(QColor(128, 255, 128), 0));
 					painter.fillRect(sweep_position + 1, int(lrint(cy * mult)) - h / 2, w, h, QColor(0, 0, 0, 128));
 					painter.drawText(sweep_position + 1, int(lrint(cy * mult)) - h / 2, w, h, Qt::AlignHCenter | Qt::AlignVCenter, text);
