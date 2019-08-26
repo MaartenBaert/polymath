@@ -1,6 +1,12 @@
 set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
 
-find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
+if(POLYMATH_BUILD_PYTHON)
+	find_package(pybind11 REQUIRED)
+endif()
+
+if(POLYMATH_BUILD_TESTBED)
+	find_package(Qt5 COMPONENTS Core Gui Widgets REQUIRED)
+endif()
 
 set(benchmark_sources
 	benchmark/3rdparty/clipper.cpp
@@ -27,6 +33,10 @@ set(polymath_sources
 	polymath/Vertex.h
 	polymath/Visualization.h
 	polymath/WindingEngine.h
+)
+
+set(python_sources
+	python/Polygon.cpp
 )
 
 set(testbed_sources
@@ -68,46 +78,58 @@ set(widemath_defines
 	-DWIDEMATH_USE_ASM=$<BOOL:${WIDEMATH_ENABLE_ASM}>
 )
 
-qt5_wrap_cpp(testbed_moc
-	testbed/MainWindow.h
-	testbed/Visualizer.h
-)
+if(POLYMATH_BUILD_BENCHMARK)
+	add_executable(polymath-benchmark
+		${benchmark_sources}
+		${polymath_sources}
+		${testgenerators_sources}
+		${widemath_sources}
+	)
+	target_link_libraries(polymath-benchmark PRIVATE
+		-lgeos
+	)
+	target_compile_definitions(polymath-benchmark PRIVATE
+		${widemath_defines}
+	)
+endif()
 
-add_executable(polymath-benchmark
-	${benchmark_sources}
-	${polymath_sources}
-	${testgenerators_sources}
-	${widemath_sources}
-)
-target_link_libraries(polymath-benchmark PRIVATE
-	-lgeos
-)
-target_compile_definitions(polymath-benchmark PRIVATE
-	${widemath_defines}
-)
+if(POLYMATH_BUILD_PYTHON)
+	pybind11_add_module(polymath
+		${polymath_sources}
+		${python_sources}
+	)
+endif()
 
-add_executable(polymath-testbed
-	${polymath_sources}
-	${testbed_sources}
-	${testbed_moc}
-	${testgenerators_sources}
-	${widemath_sources}
-)
-target_link_libraries(polymath-testbed PRIVATE
-	Qt5::Core
-	Qt5::Gui
-	Qt5::Widgets
-)
-target_compile_definitions(polymath-testbed PRIVATE
-	${widemath_defines}
-)
+if(POLYMATH_BUILD_TESTBED)
+	qt5_wrap_cpp(testbed_moc
+		testbed/MainWindow.h
+		testbed/Visualizer.h
+	)
+	add_executable(polymath-testbed
+		${polymath_sources}
+		${testbed_sources}
+		${testbed_moc}
+		${testgenerators_sources}
+		${widemath_sources}
+	)
+	target_link_libraries(polymath-testbed PRIVATE
+		Qt5::Core
+		Qt5::Gui
+		Qt5::Widgets
+	)
+	target_compile_definitions(polymath-testbed PRIVATE
+		${widemath_defines}
+	)
+endif()
 
-add_executable(polymath-unittests
-	${polymath_sources}
-	${testgenerators_sources}
-	${unittests_sources}
-	${widemath_sources}
-)
-target_compile_definitions(polymath-unittests PRIVATE
-	${widemath_defines}
-)
+if(POLYMATH_BUILD_UNITTESTS)
+	add_executable(polymath-unittests
+		${polymath_sources}
+		${testgenerators_sources}
+		${unittests_sources}
+		${widemath_sources}
+	)
+	target_compile_definitions(polymath-unittests PRIVATE
+		${widemath_defines}
+	)
+endif()

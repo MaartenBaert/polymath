@@ -4,30 +4,35 @@
 
 #include "Vertex.h"
 
+#include <algorithm>
+
 namespace PolyMath {
 
 template<class Vertex, typename WindingNumber = int32_t>
-class Polygon {
+struct Polygon {
 
-public:
 	typedef Vertex VertexType;
 	typedef WindingNumber WindingNumberType;
 
-private:
 	struct Loop {
-		size_t m_end;
-		WindingNumber m_winding_weight;
-		Loop(size_t end, WindingNumber winding_weight) : m_end(end), m_winding_weight(winding_weight) {}
+		size_t end;
+		WindingNumber weight;
+		Loop() {}
+		Loop(size_t end, WindingNumber weight) : end(end), weight(weight) {}
 	};
 
-private:
-	std::vector<Vertex> m_vertices;
-	std::vector<Loop> m_loops;
+	std::vector<Vertex> vertices;
+	std::vector<Loop> loops;
 
-public:
 	Polygon() = default;
 	Polygon(const Polygon &other) = default;
 	Polygon(Polygon &&other) = default;
+
+	Polygon(const std::vector<Vertex> &vertices, const std::vector<Loop> &loops)
+		: vertices(vertices), loops(loops) {}
+	Polygon(Vertex *vertices, size_t vertex_count, Loop *loops, size_t loop_count)
+		: vertices(vertices, vertices + vertex_count), loops(loops, loops + loop_count) {}
+
 	Polygon(std::initializer_list<std::initializer_list<Vertex>> data) {
 		for(auto loop : data) {
 			for(Vertex v : loop) {
@@ -39,6 +44,7 @@ public:
 
 	Polygon& operator=(const Polygon &other) = default;
 	Polygon& operator=(Polygon &&other) = default;
+
 	Polygon& operator=(std::initializer_list<std::initializer_list<Vertex>> data) {
 		Clear();
 		for(auto loop : data) {
@@ -51,96 +57,91 @@ public:
 	}
 
 	Polygon& operator+=(const Polygon &other) {
-		for(size_t i = 0; i < other.GetLoopCount(); i++) {
-			const Vertex *vertices = other.GetLoopVertices(i);
-			size_t n = other.GetLoopVertexCount(i);
-			for(size_t j = 0; j < n; ++j) {
-				AddVertex(vertices[j]);
-			}
-			AddLoopEnd(other.GetLoopWindingWeight(i));
+		size_t v1 = vertices.size(), v2 = other.vertices.size();
+		size_t l1 = loops.size(), l2 = other.loops.size();
+		vertices.resize(v1 + v2);
+		loops.resize(l1 + l2);
+		std::copy_n(other.vertices.data(), v2, vertices.data() + v1);
+		for(size_t i = 0; i < l2; ++i) {
+			loops[l1 + i].end = other.loops[i].end + v1;
+			loops[l1 + i].weight = other.loops[i].weight;
 		}
 		return *this;
 	}
 
 	Polygon& operator-=(const Polygon &other) {
-		for(size_t i = 0; i < other.GetLoopCount(); i++) {
-			const Vertex *vertices = other.GetLoopVertices(i);
-			size_t n = other.GetLoopVertexCount(i);
-			for(size_t j = 0; j < n; ++j) {
-				AddVertex(vertices[j]);
-			}
-			AddLoopEnd(-other.GetLoopWindingWeight(i));
+		size_t v1 = vertices.size(), v2 = other.vertices.size();
+		size_t l1 = loops.size(), l2 = other.loops.size();
+		vertices.resize(v1 + v2);
+		loops.resize(l1 + l2);
+		std::copy_n(other.vertices.data(), v2, vertices.data() + v1);
+		for(size_t i = 0; i < l2; ++i) {
+			loops[l1 + i].end = other.loops[i].end + v1;
+			loops[l1 + i].weight = -other.loops[i].weight;
 		}
 		return *this;
 	}
 
-	friend Polygon& operator+(const Polygon &a, const Polygon &b) { return Polygon(a) += b; }
-	friend Polygon& operator+(Polygon &&a, const Polygon &b) { return  a += b; }
-	friend Polygon& operator-(const Polygon &a, const Polygon &b) { return Polygon(a) -= b; }
-	friend Polygon& operator-(Polygon &&a, const Polygon &b) { return  a -= b; }
+	friend Polygon operator+(const Polygon &a, const Polygon &b) { return Polygon(a) += b; }
+	friend Polygon operator+(Polygon &&a, const Polygon &b) { return std::move(a += b); }
+	friend Polygon operator-(const Polygon &a, const Polygon &b) { return Polygon(a) -= b; }
+	friend Polygon operator-(Polygon &&a, const Polygon &b) { return std::move(a -= b); }
 
-public:
-	inline void Clear() {
-		m_vertices.clear();
-		m_loops.clear();
-	}
-	inline void ReserveVertices(size_t count) {
-		m_vertices.reserve(count);
-	}
-	inline void ReserveLoops(size_t count) {
-		m_loops.reserve(count);
-	}
-	inline void AddVertex(Vertex v) {
-		m_vertices.push_back(v);
-	}
-	inline void AddLoopEnd(WindingNumber winding_weight) {
-		m_loops.emplace_back(m_vertices.size(), winding_weight);
-	}
-	inline void AddLoop(const Vertex *vertices, size_t vertex_count, WindingNumber winding_weight) {
-		m_vertices.insert(m_vertices.end(), vertices, vertices + vertex_count);
-		AddLoopEnd(winding_weight);
+	bool IsValid() const {
+		size_t last = 0;
+		for(size_t i = 0; i < loops.size(); ++i) {
+			if(loops[i].end < last)
+				return false;
+			last = loops[i].end;
+		}
+		return (last == vertices.size());
 	}
 
-public:
-	inline size_t GetVertexCount() const {
-		return m_vertices.size();
+	void Clear() {
+		vertices.clear();
+		loops.clear();
 	}
-	inline size_t GetLoopCount() const {
-		return m_loops.size();
+	void AddVertex(Vertex v) {
+		vertices.push_back(v);
 	}
-	inline Vertex* GetVertices() {
-		return m_vertices.data();
+	void AddLoopEnd(WindingNumber winding_weight) {
+		loops.emplace_back(vertices.size(), winding_weight);
 	}
-	inline const Vertex* GetVertices() const {
-		return m_vertices.data();
+
+	Vertex* GetLoopVertices(size_t i) {
+		assert(i < loops.size());
+		return (i == 0)? vertices.data() : vertices.data() + loops[i - 1].end;
 	}
-	inline Vertex& GetVertex(size_t i) {
-		assert(i < m_vertices.size());
-		return m_vertices[i];
+	const Vertex* GetLoopVertices(size_t i) const {
+		assert(i < loops.size());
+		return (i == 0)? vertices.data() : vertices.data() + loops[i - 1].end;
 	}
-	inline const Vertex& GetVertex(size_t i) const {
-		assert(i < m_vertices.size());
-		return m_vertices[i];
+	size_t GetLoopVertexCount(size_t i) const {
+		assert(i < loops.size());
+		return (i == 0)? loops[i].end : loops[i].end - loops[i - 1].end;
 	}
-	inline size_t GetLoopEnd(size_t i) const {
-		assert(i < m_loops.size());
-		return m_loops[i].m_end;
-	}
-	inline WindingNumber GetLoopWindingWeight(size_t i) const {
-		assert(i < m_loops.size());
-		return m_loops[i].m_winding_weight;
-	}
-	inline Vertex* GetLoopVertices(size_t i) {
-		assert(i < m_loops.size());
-		return (i == 0)? m_vertices.data() : m_vertices.data() + m_loops[i - 1].m_end;
-	}
-	inline const Vertex* GetLoopVertices(size_t i) const {
-		assert(i < m_loops.size());
-		return (i == 0)? m_vertices.data() : m_vertices.data() + m_loops[i - 1].m_end;
-	}
-	inline size_t GetLoopVertexCount(size_t i) const {
-		assert(i < m_loops.size());
-		return (i == 0)? m_loops[i].m_end : m_loops[i].m_end - m_loops[i - 1].m_end;
+
+	friend std::ostream& operator<<(std::ostream &stream, const Polygon &p) {
+		if(p.IsValid()) {
+			stream << "Polygon([";
+			for(size_t i = 0; i < p.loops.size(); i++) {
+				if(i != 0)
+					stream << ", ";
+				stream << "Loop([";
+				const Vertex *vertices = p.GetLoopVertices(i);
+				size_t n = p.GetLoopVertexCount(i);
+				for(size_t j = 0; j < n; ++j) {
+					if(j != 0)
+						stream << ", ";
+					stream << vertices[j];
+				}
+				stream << "], " << p.loops[i].weight << ")";
+			}
+			stream << "])";
+		} else {
+			stream << "Polygon(<invalid>)";
+		}
+		return stream;
 	}
 
 };

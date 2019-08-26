@@ -1149,8 +1149,8 @@ public:
 		// count the total number of vertices
 		size_t total_vertices = 0;
 		size_t index = 0;
-		for(size_t loop = 0; loop < polygon.GetLoopCount(); ++loop) {
-			size_t end = polygon.GetLoopEnd(loop);
+		for(size_t loop = 0; loop < polygon.loops.size(); ++loop) {
+			size_t end = polygon.loops[loop].end;
 			if(end - index >= 3) {
 				total_vertices += end - index;
 			}
@@ -1162,11 +1162,11 @@ public:
 		m_vertex_queue.resize(total_vertices);
 		index = 0;
 		size_t current = 0;
-		for(size_t loop = 0; loop < polygon.GetLoopCount(); ++loop) {
+		for(size_t loop = 0; loop < polygon.loops.size(); ++loop) {
 
 			// get loop
-			size_t end = polygon.GetLoopEnd(loop);
-			int64_t winding_weight = polygon.GetLoopWindingWeight(loop);
+			size_t end = polygon.loops[loop].end;
+			int64_t winding_weight = polygon.loops[loop].weight;
 
 			// ignore polygons with less than three vertices
 			if(end - index < 3) {
@@ -1184,7 +1184,7 @@ public:
 				++current;
 
 				// copy vertex properties
-				v->m_vertex = polygon.GetVertex(index);
+				v->m_vertex = polygon.vertices[index];
 				v->m_winding_weight = winding_weight;
 
 				// add to the loop
@@ -1294,8 +1294,7 @@ public:
 		Polygon<Vertex> result;
 
 		// reserve space for all output vertices
-		result.Clear();
-		result.ReserveVertices(m_output_vertex_batches.size() * OUTPUT_VERTEX_BATCH_SIZE + m_output_vertex_batch_used - OUTPUT_VERTEX_BATCH_SIZE);
+		result.vertices.reserve(m_output_vertex_batches.size() * OUTPUT_VERTEX_BATCH_SIZE + m_output_vertex_batch_used - OUTPUT_VERTEX_BATCH_SIZE);
 
 		// fill polygon with output vertex data
 		for(size_t i = 0; i < m_output_vertex_batches.size(); ++i) {

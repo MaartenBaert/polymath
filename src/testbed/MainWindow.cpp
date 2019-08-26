@@ -86,7 +86,7 @@ struct Conversion {
 				bool swap = false; //rng() & 1;
 				Polygon &poly1 = (swap)? result : poly;
 				Polygon &poly2 = (swap)? poly : result;
-				size_t loop = std::uniform_int_distribution<size_t>(0, poly1.GetLoopCount() - 1)(rng);
+				size_t loop = std::uniform_int_distribution<size_t>(0, poly1.loops.size() - 1)(rng);
 				Vertex *vertices = poly1.GetLoopVertices(loop);
 				size_t vertex_count = poly1.GetLoopVertexCount(loop);
 				size_t k = std::uniform_int_distribution<size_t>(0, vertex_count - 1)(rng);

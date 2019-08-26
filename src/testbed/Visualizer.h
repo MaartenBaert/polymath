@@ -45,12 +45,12 @@ public:
 	static QPainterPath ConvertPolygon(const Polygon &polygon, double mult) {
 		QPainterPath multipoly;
 		multipoly.setFillRule(Qt::WindingFill);
-		for(size_t i = 0; i < polygon.GetLoopCount(); ++i) {
+		for(size_t i = 0; i < polygon.loops.size(); ++i) {
 			const Vertex *vertices = polygon.GetLoopVertices(i);
 			size_t n = polygon.GetLoopVertexCount(i);
 			QPolygonF loop((int(n)));
 			QPointF *points = loop.data();
-			if(polygon.GetLoopWindingWeight(i) < 0) {
+			if(polygon.loops[i].weight < 0) {
 				for(size_t j = 0; j < n; ++j) {
 					points[n - j - 1] = QPointF(double(vertices[j].x) * mult, double(vertices[j].y) * mult);
 				}

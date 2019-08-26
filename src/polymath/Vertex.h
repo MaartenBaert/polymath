@@ -13,8 +13,8 @@ struct Vertex {
 
 	T x, y;
 
-	inline Vertex() {}
-	inline Vertex(T x, T y) : x(x), y(y) {}
+	Vertex() {}
+	Vertex(T x, T y) : x(x), y(y) {}
 
 	friend std::ostream& operator<<(std::ostream &stream, const Vertex &v) {
 		return stream << '(' << v.x << ',' << v.y << ')';
@@ -23,4 +23,3 @@ struct Vertex {
 };
 
 }
-

@@ -12,13 +12,13 @@ constexpr float CLIPPER_SCALE = 1e6;
 
 void PolyToClipper(const Polygon &input, ClipperLib::Polygons &output) {
 	output.clear();
-	output.resize(input.GetLoopCount());
-	for(size_t i = 0; i < input.GetLoopCount(); ++i) {
+	output.resize(input.loops.size());
+	for(size_t i = 0; i < input.loops.size(); ++i) {
 		const Vertex *vertices = input.GetLoopVertices(i);
 		size_t n = input.GetLoopVertexCount(i);
 		ClipperLib::Polygon &ring = output[i];
 		ring.resize(n);
-		if(input.GetLoopWindingWeight(i) > 0) {
+		if(input.loops[i].weight > 0) {
 			for(size_t j = 0; j < n; ++j) {
 				ring[j] = ClipperLib::IntPoint(lrint(vertices[j].x * CLIPPER_SCALE), lrint(vertices[j].y * CLIPPER_SCALE));
 			}

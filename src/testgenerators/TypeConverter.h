@@ -72,30 +72,28 @@ struct TypeConverter : TypeConverterBase<T> {
 
 	static PolygonType ConvertPolygonToType(const Polygon &input) {
 		PolygonType output;
-		output.ReserveLoops(input.GetLoopCount());
-		output.ReserveVertices(output.GetVertexCount());
-		for(size_t i = 0; i < input.GetLoopCount(); i++) {
-			const Vertex *vertices = input.GetLoopVertices(i);
-			size_t n = input.GetLoopVertexCount(i);
-			for(size_t j = 0; j < n; ++j) {
-				output.AddVertex(ConvertVertexToType(vertices[j]));
-			}
-			output.AddLoopEnd(input.GetLoopWindingWeight(i));
+		output.vertices.resize(input.vertices.size());
+		output.loops.resize(input.loops.size());
+		for(size_t i = 0; i < input.vertices.size(); ++i) {
+			output.vertices[i] = ConvertVertexToType(input.vertices[i]);
+		}
+		for(size_t i = 0; i < input.loops.size(); ++i) {
+			output.loops[i].end = input.loops[i].end;
+			output.loops[i].weight = input.loops[i].weight;
 		}
 		return output;
 	}
 
 	static Polygon ConvertPolygonFromType(const PolygonType &input) {
 		Polygon output;
-		output.ReserveLoops(input.GetLoopCount());
-		output.ReserveVertices(output.GetVertexCount());
-		for(size_t i = 0; i < input.GetLoopCount(); i++) {
-			const VertexType *vertices = input.GetLoopVertices(i);
-			size_t n = input.GetLoopVertexCount(i);
-			for(size_t j = 0; j < n; ++j) {
-				output.AddVertex(ConvertVertexFromType(vertices[j]));
-			}
-			output.AddLoopEnd(input.GetLoopWindingWeight(i));
+		output.vertices.resize(input.vertices.size());
+		output.loops.resize(input.loops.size());
+		for(size_t i = 0; i < input.vertices.size(); ++i) {
+			output.vertices[i] = ConvertVertexFromType(input.vertices[i]);
+		}
+		for(size_t i = 0; i < input.loops.size(); ++i) {
+			output.loops[i].end = input.loops[i].end;
+			output.loops[i].weight = input.loops[i].weight;
 		}
 		return output;
 	}

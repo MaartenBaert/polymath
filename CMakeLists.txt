@@ -4,6 +4,11 @@ set(CMAKE_CXX_STANDARD 11)
 
 project(polymath VERSION 0.0.0)
 
+option(POLYMATH_BUILD_BENCHMARK "Build the PolyMath benchmark executable" OFF)
+option(POLYMATH_BUILD_PYTHON "Build the PolyMath python module (requires pybind11)" OFF)
+option(POLYMATH_BUILD_TESTBED "Build the PolyMath testbed executable (requires Qt5)" OFF)
+option(POLYMATH_BUILD_UNITTESTS "Build the PolyMath unit tests executable" ON)
+
 option(WIDEMATH_ENABLE_ASM "Allow architecture-specific assembly instructions or intrinsics for better performance." ON)
 
 include(FeatureSummary)

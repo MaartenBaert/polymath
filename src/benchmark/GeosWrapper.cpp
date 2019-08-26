@@ -41,7 +41,7 @@ void PolyToGeos(const Polygon& input, geos::geom::MultiPolygon *&output, geos::g
 			last_inner = nullptr;
 		}
 	};
-	for(size_t i = 0; i < input.GetLoopCount(); ++i) {
+	for(size_t i = 0; i < input.loops.size(); ++i) {
 		const Vertex *vertices = input.GetLoopVertices(i);
 		size_t n = input.GetLoopVertexCount(i);
 		geos::geom::CoordinateSequence *cl = new geos::geom::CoordinateArraySequence();
@@ -50,7 +50,7 @@ void PolyToGeos(const Polygon& input, geos::geom::MultiPolygon *&output, geos::g
 		}
 		cl->add(geos::geom::Coordinate(vertices[0].x, vertices[0].y));
 		geos::geom::LinearRing *lr = factory->createLinearRing(cl);
-		if(input.GetLoopWindingWeight(i) > 0) {
+		if(input.loops[i].weight > 0) {
 			Flush();
 			last_outer = lr;
 		} else {

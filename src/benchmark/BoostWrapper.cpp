@@ -20,12 +20,12 @@ struct Conversion {
 
 	static void PolyToBoost(const Polygon &input, boost_polygons &output) {
 		output.clear();
-		output.resize(input.GetLoopCount());
+		output.resize(input.loops.size());
 		size_t num = 0;
-		for(size_t i = 0; i < input.GetLoopCount(); ++i) {
+		for(size_t i = 0; i < input.loops.size(); ++i) {
 			const Vertex *vertices = input.GetLoopVertices(i);
 			size_t n = input.GetLoopVertexCount(i);
-			if(input.GetLoopWindingWeight(i) > 0) {
+			if(input.loops[i].weight > 0) {
 				boost_ring &ring = output[num++].outer();
 				ring.resize(n);
 				for(size_t j = 0; j < n; ++j) {
