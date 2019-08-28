@@ -9,24 +9,24 @@
 #include <iostream>
 #include <random>
 
-template<typename F>
+template<typename T>
 struct Conversion {
 
 	typedef TestGenerators::Vertex Vertex;
 	typedef TestGenerators::Polygon Polygon;
 
-	typedef PolyMath::Vertex<F> Vertex2;
-	typedef PolyMath::Polygon<F> Polygon2;
-	typedef PolyMath::Visualization<F> Visualization2;
+	typedef PolyMath::Vertex<T> Vertex2;
+	typedef PolyMath::Polygon<T> Polygon2;
+	typedef PolyMath::Visualization<T> Visualization2;
 
 	static void Process(const Polygon &input, Visualizer *visualizer) {
 
-		Polygon2 poly = TestGenerators::TypeConverter<F>::ConvertPolygonToType(input);
+		Polygon2 poly = TestGenerators::TypeConverter<T>::ConvertPolygonToType(input);
 
-		PolyMath::SweepEngine<F, PolyMath::WindingEngine_Positive<typename Polygon2::WindingWeightType>> engine(poly);
+		PolyMath::SweepEngine<T, PolyMath::WindingEngine_Positive<typename Polygon2::WindingWeightType>> engine(poly);
 		engine.Process();
 
-		std::unique_ptr<VisualizationWrapper<F>> wrapper(new VisualizationWrapper<F>());
+		std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
 		wrapper->SetPolygonInput(poly);
 		wrapper->SetPolygonOutput(engine.Result());
 		visualizer->SetWrapper(std::move(wrapper));
@@ -35,11 +35,11 @@ struct Conversion {
 
 	static void Visualize(const Polygon &input, Visualizer *visualizer) {
 
-		Polygon2 poly = TestGenerators::TypeConverter<F>::ConvertPolygonToType(input);
+		Polygon2 poly = TestGenerators::TypeConverter<T>::ConvertPolygonToType(input);
 
-		PolyMath::SweepEngine<F, PolyMath::WindingEngine_Positive<typename Polygon2::WindingWeightType>> engine(poly);
+		PolyMath::SweepEngine<T, PolyMath::WindingEngine_Positive<typename Polygon2::WindingWeightType>> engine(poly);
 		engine.Process([&](){
-			std::unique_ptr<VisualizationWrapper<F>> wrapper(new VisualizationWrapper<F>());
+			std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
 			wrapper->SetPolygonInput(poly);
 			wrapper->SetVisualization(engine.Visualize());
 			visualizer->SetWrapper(std::move(wrapper));
@@ -49,7 +49,7 @@ struct Conversion {
 			//QMessageBox::information(nullptr, "Visualization", "...");
 		});
 
-		std::unique_ptr<VisualizationWrapper<F>> wrapper(new VisualizationWrapper<F>());
+		std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
 		wrapper->SetPolygonInput(poly);
 		wrapper->SetPolygonOutput(engine.Result());
 		visualizer->SetWrapper(std::move(wrapper));
@@ -58,7 +58,7 @@ struct Conversion {
 
 	static void EdgeCases(size_t num_tests, size_t num_probes) {
 
-		double eps = TestGenerators::TypeConverter<F>::Epsilon();
+		double eps = TestGenerators::TypeConverter<T>::Epsilon();
 
 		std::mt19937_64 rng(UINT64_C(0xc0d9e78ec6150647));
 		std::uniform_real_distribution<double> dist_t(0.0, 1.0);
@@ -75,11 +75,11 @@ struct Conversion {
 			Polygon poly = TestGenerators::EdgeCases(seed, 5, 10, 2.0 * eps);
 
 			// process
-			Polygon2 poly_conv = TestGenerators::TypeConverter<F>::ConvertPolygonToType(poly);
-			PolyMath::SweepEngine<F, PolyMath::WindingEngine_EvenOdd<typename Polygon2::WindingWeightType>> engine(poly_conv);
+			Polygon2 poly_conv = TestGenerators::TypeConverter<T>::ConvertPolygonToType(poly);
+			PolyMath::SweepEngine<T, PolyMath::WindingEngine_EvenOdd<typename Polygon2::WindingWeightType>> engine(poly_conv);
 			engine.Process();
 			Polygon2 result_conv = engine.Result();
-			Polygon result = TestGenerators::TypeConverter<F>::ConvertPolygonFromType(result_conv);
+			Polygon result = TestGenerators::TypeConverter<T>::ConvertPolygonFromType(result_conv);
 
 			// probe
 			for(size_t j = 0; j < num_probes; ++j) {
@@ -158,7 +158,7 @@ MainWindow::MainWindow() {
 		m_test_type_combobox = new QComboBox(groupbox_test);
 		m_test_type_combobox->addItems({"Dual Grid", "Orthogonal", "Edge Cases", "Star"});
 		m_test_type_combobox->setCurrentIndex(TESTTYPE_DUALGRID);
-		
+
 		QWidget *page_dualgrid = new QWidget(groupbox_test);
 		{
 			m_test_dualgrid_type_combobox = new QComboBox(page_dualgrid);

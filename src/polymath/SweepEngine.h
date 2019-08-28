@@ -1140,7 +1140,7 @@ private:
 
 public:
 
-	SweepEngine(const Polygon<T> &polygon) {
+	SweepEngine(const Polygon<T, WindingWeightType> &polygon) {
 
 		// initialize
 		m_current_vertex = 0;
@@ -1292,8 +1292,8 @@ public:
 		return result;
 	}
 
-	Polygon<T> Result() {
-		Polygon<T> result;
+	Polygon<T, WindingWeightType> Result() {
+		Polygon<T, WindingWeightType> result;
 
 		// reserve space for all output vertices
 		result.vertices.reserve(m_output_vertex_batches.size() * OUTPUT_VERTEX_BATCH_SIZE + m_output_vertex_batch_used - OUTPUT_VERTEX_BATCH_SIZE);

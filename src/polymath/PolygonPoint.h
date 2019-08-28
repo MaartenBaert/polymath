@@ -10,8 +10,8 @@
 
 namespace PolyMath {
 
-template<typename T, BoundaryRule boundary_rule = BOUNDARYRULE_LAZY>
-int64_t PolygonPointWindingNumber(const Polygon<T> &polygon, Vertex<T> point) {
+template<typename T, typename W, BoundaryRule boundary_rule = BOUNDARYRULE_LAZY>
+int64_t PolygonPointWindingNumber(const Polygon<T, W> &polygon, Vertex<T> point) {
 
 	typedef PolyMath::NumericalEngine<T> NumericalEngine;
 
@@ -29,14 +29,14 @@ int64_t PolygonPointWindingNumber(const Polygon<T> &polygon, Vertex<T> point) {
 		}
 	};
 
-	int64_t winding_number = 0;
+	W winding_number = 0;
 	size_t index = 0;
 	for(size_t loop = 0; loop < polygon.loops.size(); ++loop) {
 
 		// get loop
 		size_t begin = index;
 		size_t end = polygon.loops[loop].end;
-		int64_t winding_weight = polygon.loops[loop].weight;
+		W winding_weight = polygon.loops[loop].weight;
 
 		// ignore polygons with less than two/three vertices
 		if(end - begin < 3) {
@@ -70,8 +70,8 @@ int64_t PolygonPointWindingNumber(const Polygon<T> &polygon, Vertex<T> point) {
 	return winding_number;
 }
 
-template<class T>
-T PolygonPointEdgeDistance(const Polygon<T> &polygon, Vertex<T> point) {
+template<typename T, typename W>
+T PolygonPointEdgeDistance(const Polygon<T, W> &polygon, Vertex<T> point) {
 
 	T best = std::numeric_limits<T>::max();
 	size_t index = 0;
