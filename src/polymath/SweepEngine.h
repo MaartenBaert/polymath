@@ -26,11 +26,16 @@
 
 namespace PolyMath {
 
+enum SweepMode {
+	SWEEPMODE_SIMPLE,
+	SWEEPMODE_MONOTONE,
+};
+
 inline void DummyVisualizationCallback() {
 	// nothing
 }
 
-template<typename T, class WindingEngine>
+template<typename T, class WindingEngine, SweepMode mode = SWEEPMODE_MONOTONE>
 class SweepEngine {
 
 public:
@@ -47,6 +52,10 @@ private:
 	struct OutputVertex {
 		VertexType m_vertex;
 		OutputVertex *m_next;
+	};
+
+	struct OutputCut {
+		OutputVertex *m_vertex1, *m_vertex2;
 	};
 
 	struct SweepVertex {
@@ -85,11 +94,16 @@ private:
 		OutputVertex *m_output_vertex;
 		bool m_output_vertex_forward;
 
+		// helper
+		OutputVertex *m_helper;
+		bool m_helper_needs_cut;
+
 	};
 
 private:
 	static constexpr size_t SWEEP_EDGE_BATCH_SIZE = 256;
 	static constexpr size_t OUTPUT_VERTEX_BATCH_SIZE = 256;
+	static constexpr size_t OUTPUT_CUT_BATCH_SIZE = 256;
 
 private:
 
@@ -113,6 +127,10 @@ private:
 	// output vertices
 	std::vector<std::unique_ptr<OutputVertex[]>> m_output_vertex_batches;
 	size_t m_output_vertex_batch_used;
+
+	// output cuts
+	std::vector<std::unique_ptr<OutputCut[]>> m_output_cut_batches;
+	size_t m_output_cut_batch_used;
 
 private:
 
@@ -849,13 +867,175 @@ private:
 		return v;
 	}
 
-	void UpdateIntersection(SweepEdge *edge1, SweepEdge *edge2){
+	OutputCut* AddOutputCut(OutputVertex *vertex1, OutputVertex *vertex2) {
+		if(m_output_cut_batch_used == OUTPUT_CUT_BATCH_SIZE) {
+			std::unique_ptr<OutputCut[]> mem(new OutputCut[OUTPUT_CUT_BATCH_SIZE]);
+			m_output_cut_batches.push_back(std::move(mem));
+			m_output_cut_batch_used = 0;
+		}
+		OutputCut *batch = m_output_cut_batches.back().get();
+		OutputCut *v = &batch[m_output_cut_batch_used];
+		v->m_vertex1 = vertex1;
+		v->m_vertex2 = vertex2;
+		++m_output_cut_batch_used;
+		return v;
+	}
+
+	void OutputStartVertex(SweepEdge *edge1, SweepEdge *edge2, VertexType vertex, bool is_split) {
+		assert(edge1 != nullptr);
+		assert(edge2 != nullptr);
+
+		// check whether a cut is needed
+		if(is_split) {
+
+			// find previous output edge
+			SweepEdge *edge_prev_output = TreePrevious(edge1);
+			assert(edge_prev_output != nullptr);
+			while(edge_prev_output->m_output_vertex == nullptr) {
+				edge_prev_output = TreePrevious(edge_prev_output);
+				assert(edge_prev_output != nullptr);
+			}
+			OutputVertex *helper_vertex = edge_prev_output->m_helper;
+			assert(helper_vertex != nullptr);
+
+			// create new output vertex
+			OutputVertex *output_vertex = AddOutputVertex(vertex);
+
+			// add output cut
+			AddOutputCut(edge_prev_output->m_helper, output_vertex);
+
+			// update sweep edges
+			edge_prev_output->m_helper = output_vertex;
+			edge_prev_output->m_helper_needs_cut = false;
+			edge1->m_output_vertex = output_vertex;
+			edge1->m_output_vertex_forward = true;
+			edge2->m_output_vertex = output_vertex;
+			edge2->m_output_vertex_forward = false;
+			edge2->m_helper = output_vertex;
+			edge2->m_helper_needs_cut = false;
+
+		} else {
+
+			// create new output vertex
+			OutputVertex *output_vertex = AddOutputVertex(vertex);
+
+			// update sweep edges
+			edge1->m_output_vertex = output_vertex;
+			edge1->m_output_vertex_forward = false;
+			edge1->m_helper = output_vertex;
+			edge1->m_helper_needs_cut = false;
+			edge2->m_output_vertex = output_vertex;
+			edge2->m_output_vertex_forward = true;
+
+		}
+
+	}
+
+	void OutputMiddleVertex(SweepEdge *edge, VertexType vertex) {
+		assert(edge != nullptr);
+
+		if(edge->m_output_vertex_forward) {
+
+			// create new output vertex
+			OutputVertex *output_vertex = AddOutputVertex(vertex);
+			edge->m_output_vertex->m_next = output_vertex;
+			edge->m_output_vertex = output_vertex;
+
+			// find previous output edge
+			SweepEdge *edge_prev_output = TreePrevious(edge);
+			assert(edge_prev_output != nullptr);
+			while(edge_prev_output->m_output_vertex == nullptr) {
+				edge_prev_output = TreePrevious(edge_prev_output);
+				assert(edge_prev_output != nullptr);
+			}
+
+			// add output cut if necessary
+			if(edge_prev_output->m_helper_needs_cut) {
+				AddOutputCut(edge_prev_output->m_helper, output_vertex);
+			}
+
+			// update helper
+			edge_prev_output->m_helper = output_vertex;
+			edge_prev_output->m_helper_needs_cut = false;
+
+		} else {
+
+			// create new output vertex
+			OutputVertex *output_vertex = AddOutputVertex(vertex);
+			output_vertex->m_next = edge->m_output_vertex;
+			edge->m_output_vertex = output_vertex;
+
+			// add output cut if necessary
+			if(edge->m_helper_needs_cut) {
+				AddOutputCut(edge->m_helper, output_vertex);
+			}
+
+			// update helper
+			edge->m_helper = output_vertex;
+			edge->m_helper_needs_cut = false;
+
+		}
+
+	}
+
+	void OutputStopVertex(SweepEdge *edge1, SweepEdge *edge2, VertexType vertex, SweepEdge *edge_prev) {
+		assert(edge1 != nullptr);
+		assert(edge2 != nullptr);
+
+		if(edge1->m_output_vertex_forward) {
+
+			// create new output vertex
+			OutputVertex *output_vertex = AddOutputVertex(vertex);
+			edge1->m_output_vertex->m_next = output_vertex;
+			output_vertex->m_next = edge2->m_output_vertex;
+
+			// find previous output edge
+			SweepEdge *edge_prev_output = edge_prev;
+			assert(edge_prev_output != nullptr);
+			while(edge_prev_output->m_output_vertex == nullptr) {
+				edge_prev_output = TreePrevious(edge_prev_output);
+				assert(edge_prev_output != nullptr);
+			}
+
+			// add output cuts if necessary
+			if(edge_prev_output->m_helper_needs_cut) {
+				AddOutputCut(edge_prev_output->m_helper, output_vertex);
+			}
+			if(edge2->m_helper_needs_cut) {
+				AddOutputCut(edge2->m_helper, output_vertex);
+			}
+
+			// update helper
+			edge_prev_output->m_helper = output_vertex;
+			edge_prev_output->m_helper_needs_cut = true;
+
+		} else {
+
+			// create new output vertex
+			OutputVertex *output_vertex = AddOutputVertex(vertex);
+			edge2->m_output_vertex->m_next = output_vertex;
+			output_vertex->m_next = edge1->m_output_vertex;
+
+			// add output cut if necessary
+			if(edge1->m_helper_needs_cut) {
+				AddOutputCut(edge1->m_helper, output_vertex);
+			}
+
+		}
+
+		edge1->m_output_vertex = nullptr;
+		edge2->m_output_vertex = nullptr;
+
+	}
+
+	void UpdateIntersection(SweepEdge *edge1, SweepEdge *edge2) {
 		assert(edge1 == nullptr || edge1 != edge2);
 
 		if(edge1 == nullptr)
 			return;
-		if(edge1->m_heap_index != INDEX_NONE)
+		if(edge1->m_heap_index != INDEX_NONE) {
 			HeapRemove(edge1);
+		}
 
 		if(edge2 == nullptr)
 			return;
@@ -891,52 +1071,46 @@ private:
 		edge2->m_winding_number = edge1->m_winding_number;
 		edge1->m_winding_number -= edge2->m_winding_weight;
 
-		// if both edges have output vertices, combine them
-		if(edge1->m_output_vertex != nullptr && edge2->m_output_vertex != nullptr) {
-			assert(edge1->m_output_vertex_forward != edge2->m_output_vertex_forward);
-			if(edge1->m_output_vertex_forward) {
-				OutputVertex *output_vertex = AddOutputVertex(intersection_vertex);
-				edge1->m_output_vertex->m_next = output_vertex;
-				output_vertex->m_next = edge2->m_output_vertex;
-			} else {
-				OutputVertex *output_vertex = AddOutputVertex(intersection_vertex);
-				edge2->m_output_vertex->m_next = output_vertex;
-				output_vertex->m_next = edge1->m_output_vertex;
-			}
-			edge1->m_output_vertex = nullptr;
-			edge2->m_output_vertex = nullptr;
-		}
-
 		if(edge1->m_output_vertex == nullptr && edge2->m_output_vertex == nullptr) {
 
 			// if there are no output vertices, create them if necessary
 			bool w1 = WindingEngine::WindingRule(edge1->m_winding_number), w2 = WindingEngine::WindingRule(edge2->m_winding_number);
 			if(w1 != w2) {
-				OutputVertex *output_vertex = AddOutputVertex(intersection_vertex);
-				edge1->m_output_vertex = output_vertex;
-				edge1->m_output_vertex_forward = w2;
-				edge2->m_output_vertex = output_vertex;
-				edge2->m_output_vertex_forward = w1;
+				OutputStartVertex(edge1, edge2, intersection_vertex, w2);
+			}
+
+		} else if(edge1->m_output_vertex != nullptr && edge2->m_output_vertex != nullptr) {
+
+			// if both edges have output vertices, combine them if necessary
+			bool w1 = WindingEngine::WindingRule(edge1->m_winding_number), w2 = WindingEngine::WindingRule(edge2->m_winding_number);
+			if(w1 == w2) {
+				OutputStopVertex(edge2, edge1, intersection_vertex, edge_prev);
+			} else {
+				std::swap(edge1->m_output_vertex, edge2->m_output_vertex);
+				std::swap(edge1->m_output_vertex_forward, edge2->m_output_vertex_forward);
+				std::swap(edge1->m_helper, edge2->m_helper);
+				std::swap(edge1->m_helper_needs_cut, edge2->m_helper_needs_cut);
+				OutputMiddleVertex(edge1, intersection_vertex);
+				OutputMiddleVertex(edge2, intersection_vertex);
 			}
 
 		} else {
 
 			// if only one edge has an output vertex, propagate it
-			SweepEdge *edge_old = (edge1->m_output_vertex == nullptr)? edge2 : edge1;
-			SweepEdge *edge_new = (WindingEngine::WindingRule(edge1->m_winding_number) == edge_old->m_output_vertex_forward)? edge2 : edge1;
-			if(edge_old != edge_new) {
-				if(edge_old->m_output_vertex_forward) {
-					OutputVertex *output_vertex = AddOutputVertex(intersection_vertex);
-					edge_old->m_output_vertex->m_next = output_vertex;
-					edge_old->m_output_vertex = nullptr;
-					edge_new->m_output_vertex = output_vertex;
-				} else {
-					OutputVertex *output_vertex = AddOutputVertex(intersection_vertex);
-					output_vertex->m_next = edge_old->m_output_vertex;
-					edge_old->m_output_vertex = nullptr;
-					edge_new->m_output_vertex = output_vertex;
-				}
-				edge_new->m_output_vertex_forward = edge_old->m_output_vertex_forward;
+			if(edge1->m_output_vertex) {
+				edge2->m_output_vertex = edge1->m_output_vertex;
+				edge2->m_output_vertex_forward = edge1->m_output_vertex_forward;
+				edge2->m_helper = edge1->m_helper;
+				edge2->m_helper_needs_cut = edge1->m_helper_needs_cut;
+				edge1->m_output_vertex = nullptr;
+				OutputMiddleVertex(edge2, intersection_vertex);
+			} else {
+				edge1->m_output_vertex = edge2->m_output_vertex;
+				edge1->m_output_vertex_forward = edge2->m_output_vertex_forward;
+				edge1->m_helper = edge2->m_helper;
+				edge1->m_helper_needs_cut = edge2->m_helper_needs_cut;
+				edge2->m_output_vertex = nullptr;
+				OutputMiddleVertex(edge1, intersection_vertex);
 			}
 
 		}
@@ -981,12 +1155,12 @@ private:
 		TreeInsert(edge2, vertex, edge1);
 
 		// update intersections
-		SweepEdge *edge0 = TreePrevious(edge1), *edge3 = TreeNext(edge2);
-		UpdateIntersection(edge0, edge1);
-		UpdateIntersection(edge2, edge3);
+		SweepEdge *edge_prev = TreePrevious(edge1), *edge_next = TreeNext(edge2);
+		UpdateIntersection(edge_prev, edge1);
+		UpdateIntersection(edge2, edge_next);
 
 		// update winding numbers
-		WindingNumberType winding_number = (edge0 == nullptr)? 0 : edge0->m_winding_number;
+		WindingNumberType winding_number = (edge_prev == nullptr)? 0 : edge_prev->m_winding_number;
 		edge1->m_winding_number = winding_number + edge1->m_winding_weight;
 		edge2->m_winding_number = winding_number;
 
@@ -996,11 +1170,7 @@ private:
 			edge1->m_output_vertex = nullptr;
 			edge2->m_output_vertex = nullptr;
 		} else {
-			OutputVertex *output_vertex = AddOutputVertex(vertex->m_vertex);
-			edge1->m_output_vertex = output_vertex;
-			edge1->m_output_vertex_forward = w2;
-			edge2->m_output_vertex = output_vertex;
-			edge2->m_output_vertex_forward = w1;
+			OutputStartVertex(edge1, edge2, vertex->m_vertex, w2);
 		}
 
 #if POLYMATH_VERIFY
@@ -1036,15 +1206,7 @@ private:
 
 		// update output vertex
 		if(edge->m_output_vertex != nullptr) {
-			if(edge->m_output_vertex_forward) {
-				OutputVertex *output_vertex = AddOutputVertex(vertex->m_vertex);
-				edge->m_output_vertex->m_next = output_vertex;
-				edge->m_output_vertex = output_vertex;
-			} else {
-				OutputVertex *output_vertex = AddOutputVertex(vertex->m_vertex);
-				output_vertex->m_next = edge->m_output_vertex;
-				edge->m_output_vertex = output_vertex;
-			}
+			OutputMiddleVertex(edge, vertex->m_vertex);
 		}
 
 #if POLYMATH_VERIFY
@@ -1114,15 +1276,7 @@ private:
 		if(edge1->m_output_vertex != nullptr) {
 			assert(edge2->m_output_vertex != nullptr);
 			assert(edge1->m_output_vertex_forward != edge2->m_output_vertex_forward);
-			if(edge1->m_output_vertex_forward) {
-				OutputVertex *output_vertex = AddOutputVertex(vertex->m_vertex);
-				edge1->m_output_vertex->m_next = output_vertex;
-				output_vertex->m_next = edge2->m_output_vertex;
-			} else {
-				OutputVertex *output_vertex = AddOutputVertex(vertex->m_vertex);
-				edge2->m_output_vertex->m_next = output_vertex;
-				output_vertex->m_next = edge1->m_output_vertex;
-			}
+			OutputStopVertex(edge1, edge2, vertex->m_vertex, edge_prev);
 		} else {
 			assert(edge2->m_output_vertex == nullptr);
 		}
@@ -1147,6 +1301,7 @@ public:
 		m_sweep_edge_free_list = nullptr;
 		m_tree_root = nullptr;
 		m_output_vertex_batch_used = OUTPUT_VERTEX_BATCH_SIZE;
+		m_output_cut_batch_used = OUTPUT_CUT_BATCH_SIZE;
 
 		// count the total number of vertices
 		size_t total_vertices = 0;
@@ -1270,22 +1425,39 @@ public:
 			edge.m_edge_vertices[0] = w->m_vertex_first;
 			edge.m_edge_vertices[1] = w->m_vertex_last;
 			edge.m_has_intersection = (w->m_heap_index != INDEX_NONE);
-			edge.m_intersection_vertex = VertexType(NumericalEngine<T>::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine<T>::DoubleToSingle(w->m_heap_vertex.y));
+			if(w->m_heap_index != INDEX_NONE)
+				edge.m_intersection_vertex = VertexType(NumericalEngine<T>::DoubleToSingle(w->m_heap_vertex.x), NumericalEngine<T>::DoubleToSingle(w->m_heap_vertex.y));
+			edge.m_has_helper = (w->m_output_vertex != nullptr && !w->m_output_vertex_forward);
+			if(w->m_output_vertex != nullptr && !w->m_output_vertex_forward)
+				edge.m_helper_vertex = w->m_helper->m_vertex;
 			edge.m_winding_number = w->m_winding_number;
 		}
 
-		// output polygon
+		// output edges
 		for(size_t i = 0; i < m_output_vertex_batches.size(); ++i) {
-			OutputVertex *pool = m_output_vertex_batches[i].get();
-			size_t pool_size = (i == m_output_vertex_batches.size() - 1)? m_output_vertex_batch_used : OUTPUT_VERTEX_BATCH_SIZE;
-			for(size_t j = 0; j < pool_size; ++j) {
-				OutputVertex *v = pool + j;
+			OutputVertex *batch = m_output_vertex_batches[i].get();
+			size_t batch_size = (i == m_output_vertex_batches.size() - 1)? m_output_vertex_batch_used : OUTPUT_VERTEX_BATCH_SIZE;
+			for(size_t j = 0; j < batch_size; ++j) {
+				OutputVertex *v = &batch[j];
 				if(v->m_next != nullptr) {
 					result.m_output_edges.emplace_back();
 					auto &edge = result.m_output_edges.back();
 					edge.m_edge_vertices[0] = v->m_vertex;
 					edge.m_edge_vertices[1] = v->m_next->m_vertex;
 				}
+			}
+		}
+
+		// output cuts
+		for(size_t i = 0; i < m_output_cut_batches.size(); ++i) {
+			OutputCut *batch = m_output_cut_batches[i].get();
+			size_t batch_size = (i == m_output_cut_batches.size() - 1)? m_output_cut_batch_used : OUTPUT_VERTEX_BATCH_SIZE;
+			for(size_t j = 0; j < batch_size; ++j) {
+				OutputCut *c = &batch[j];
+				result.m_output_cuts.emplace_back();
+				auto &cut = result.m_output_cuts.back();
+				cut.m_cut_vertices[0] = c->m_vertex1->m_vertex;
+				cut.m_cut_vertices[1] = c->m_vertex2->m_vertex;
 			}
 		}
 
@@ -1303,7 +1475,7 @@ public:
 			OutputVertex *batch = m_output_vertex_batches[i].get();
 			size_t batch_size = (i == m_output_vertex_batches.size() - 1)? m_output_vertex_batch_used : OUTPUT_VERTEX_BATCH_SIZE;
 			for(size_t j = 0; j < batch_size; ++j) {
-				OutputVertex *v = batch + j;
+				OutputVertex *v = &batch[j];
 				if(v->m_next != nullptr) {
 					OutputVertex *w = v;
 					while(w->m_next != nullptr) {

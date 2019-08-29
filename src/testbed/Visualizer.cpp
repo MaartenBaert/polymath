@@ -5,15 +5,9 @@
 #include <chrono>
 #include <thread>
 
-/*
-	m_decimation_counter = (m_decimation_counter + 1) % 1;
-	if(m_decimation_counter == 0) {
-		update();
-		qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
-		std::this_thread::sleep_for(std::chrono::milliseconds(50));
-		QMessageBox::information(nullptr, "Visualization", "...");
-	}
-*/
+VisualizationWrapperBase::~VisualizationWrapperBase() {
+	// nothing
+}
 
 Visualizer::Visualizer(QWidget *parent)
 	: QWidget(parent) {
@@ -29,7 +23,7 @@ Visualizer::Visualizer(QWidget *parent)
 }
 
 Visualizer::~Visualizer() {
-
+	// nothing
 }
 
 QSize Visualizer::sizeHint() const {

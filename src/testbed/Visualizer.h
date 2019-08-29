@@ -9,7 +9,7 @@
 
 class VisualizationWrapperBase {
 public:
-	virtual ~VisualizationWrapperBase() {};
+	virtual ~VisualizationWrapperBase();
 	virtual void Paint(QPainter &painter, double scale) = 0;
 };
 
@@ -110,52 +110,87 @@ public:
 		// draw sweep edges intersection with scanline
 		if(m_visualization.m_has_current_vertex) {
 
-			size_t num = 0;
-			double cy_prev = -std::numeric_limits<double>::max();
-			int64_t winding_number = 0;
+			// draw helpers
+			{
 
-			int sweep_position = int(lrint(double(m_visualization.m_current_vertex.x) * mult));
+				painter.setPen(QPen(QColor(192, 128, 255), 0, Qt::DashLine));
+				painter.setBrush(Qt::NoBrush);
 
-			QFont font("Sans");
-			font.setPixelSize(8);
-			QFontMetrics fm(font);
-			painter.setFont(font);
+				bool has_helper = false;
+				Vertex helper_vertex;
+				double cy_prev = -std::numeric_limits<double>::max();
 
-			for(typename Visualization::SweepEdge &edge : m_visualization.m_sweep_edges) {
-				Vertex &a = edge.m_edge_vertices[0], &b = edge.m_edge_vertices[1];
-
-				double div = double(a.x) - double(b.x);
-				double cy = (div == 0.0)? double(b.y) : double(b.y) + (double(a.y) - double(b.y)) * (double(m_visualization.m_current_vertex.x) - double(b.x)) / div;
-				if(cy_prev != -std::numeric_limits<double>::max()) {
-					QString text = QString::number(winding_number);
-					int w = fm.horizontalAdvance(text) + 4, h = fm.height() + 4;
-					painter.setPen(QPen(QColor(255, 128, 128), 0));
-					painter.fillRect(sweep_position - w - 1, int(lrint((cy_prev + cy) / 2.0 * mult)) - h / 2, w, h, QColor(0, 0, 0, 128));
-					painter.drawText(sweep_position - w - 1, int(lrint((cy_prev + cy) / 2.0 * mult)) - h / 2, w, h, Qt::AlignHCenter | Qt::AlignVCenter, text);
+				for(typename Visualization::SweepEdge &edge : m_visualization.m_sweep_edges) {
+					Vertex &a = edge.m_edge_vertices[0], &b = edge.m_edge_vertices[1];
+					double div = double(a.x) - double(b.x);
+					double cy = (div == 0.0)? double(b.y) : double(b.y) + (double(a.y) - double(b.y)) * (double(m_visualization.m_current_vertex.x) - double(b.x)) / div;
+					if(cy_prev != -std::numeric_limits<double>::max() && has_helper) {
+						painter.drawLine(QPointF(double(helper_vertex.x) * mult, double(helper_vertex.y) * mult), QPointF(double(m_visualization.m_current_vertex.x) * mult, (cy_prev + cy) / 2.0 * mult));
+					}
+					has_helper = edge.m_has_helper;
+					helper_vertex = edge.m_helper_vertex;
+					cy_prev = cy;
 				}
-				{
-					QString text = QString::number(++num);
-					int w = fm.horizontalAdvance(text) + 4, h = fm.height() + 4;
-					painter.setPen(QPen(QColor(128, 255, 128), 0));
-					painter.fillRect(sweep_position + 1, int(lrint(cy * mult)) - h / 2, w, h, QColor(0, 0, 0, 128));
-					painter.drawText(sweep_position + 1, int(lrint(cy * mult)) - h / 2, w, h, Qt::AlignHCenter | Qt::AlignVCenter, text);
-				}
-				winding_number = edge.m_winding_number;
 
-				if(cy < cy_prev) {
-					painter.setPen(QPen(QColor(0, 255, 255), 0));
-					painter.drawLine(QPointF(double(m_visualization.m_current_vertex.x) * mult, cy_prev * mult), QPointF(double(m_visualization.m_current_vertex.x) * mult, cy * mult));
+			}
+
+			// draw text
+			{
+
+				QFont font("Sans");
+				font.setPixelSize(8);
+				QFontMetrics fm(font);
+				painter.setFont(font);
+
+				size_t num = 0;
+				int64_t winding_number = 0;
+				double cy_prev = -std::numeric_limits<double>::max();
+				int sweep_position = int(lrint(double(m_visualization.m_current_vertex.x) * mult));
+
+				for(typename Visualization::SweepEdge &edge : m_visualization.m_sweep_edges) {
+					Vertex &a = edge.m_edge_vertices[0], &b = edge.m_edge_vertices[1];
+
+					double div = double(a.x) - double(b.x);
+					double cy = (div == 0.0)? double(b.y) : double(b.y) + (double(a.y) - double(b.y)) * (double(m_visualization.m_current_vertex.x) - double(b.x)) / div;
+					if(cy_prev != -std::numeric_limits<double>::max()) {
+						QString text = QString::number(winding_number);
+						int w = fm.horizontalAdvance(text) + 4, h = fm.height() + 4;
+						painter.setPen(QPen(QColor(255, 128, 128), 0));
+						painter.fillRect(sweep_position - w - 1, int(lrint((cy_prev + cy) / 2.0 * mult)) - h / 2, w, h, QColor(0, 0, 0, 128));
+						painter.drawText(sweep_position - w - 1, int(lrint((cy_prev + cy) / 2.0 * mult)) - h / 2, w, h, Qt::AlignHCenter | Qt::AlignVCenter, text);
+					}
+					{
+						QString text = QString::number(++num);
+						int w = fm.horizontalAdvance(text) + 4, h = fm.height() + 4;
+						painter.setPen(QPen(QColor(128, 255, 128), 0));
+						painter.fillRect(sweep_position + 1, int(lrint(cy * mult)) - h / 2, w, h, QColor(0, 0, 0, 128));
+						painter.drawText(sweep_position + 1, int(lrint(cy * mult)) - h / 2, w, h, Qt::AlignHCenter | Qt::AlignVCenter, text);
+					}
+					winding_number = edge.m_winding_number;
+
+					if(cy < cy_prev) {
+						painter.setPen(QPen(QColor(0, 255, 255), 0));
+						painter.drawLine(QPointF(double(m_visualization.m_current_vertex.x) * mult, cy_prev * mult), QPointF(double(m_visualization.m_current_vertex.x) * mult, cy * mult));
+					}
+					cy_prev = cy;
+
 				}
-				cy_prev = cy;
 
 			}
 
 		}
 
-		// draw output polygon
+		// draw output edges
 		painter.setPen(QPen(QColor(255, 255, 0), 0));
 		for(typename Visualization::OutputEdge &edge : m_visualization.m_output_edges) {
 			Vertex &a = edge.m_edge_vertices[0], &b = edge.m_edge_vertices[1];
+			painter.drawLine(QPointF(double(a.x) * mult, double(a.y) * mult), QPointF(double(b.x) * mult, double(b.y) * mult));
+		}
+
+		// draw output cuts
+		painter.setPen(QPen(QColor(255, 160, 0), 0));
+		for(typename Visualization::OutputCut &cut : m_visualization.m_output_cuts) {
+			Vertex &a = cut.m_cut_vertices[0], &b = cut.m_cut_vertices[1];
 			painter.drawLine(QPointF(double(a.x) * mult, double(a.y) * mult), QPointF(double(b.x) * mult, double(b.y) * mult));
 		}
 
