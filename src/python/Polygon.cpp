@@ -70,5 +70,8 @@ PYBIND11_MODULE(polymath, m) {
 			.def("__str__", [](Polygon_I64 &p) -> std::string { std::ostringstream ss; ss << p; return ss.str(); });
 
 	m.def("PolygonSimplify_NonZero", &PolyMath::PolygonSimplify_NonZero<int64_t, int32_t>);
+	m.def("PolygonSimplify_EvenOdd", &PolyMath::PolygonSimplify_EvenOdd<int64_t, int32_t>);
+	m.def("PolygonSimplify_Positive", &PolyMath::PolygonSimplify_Positive<int64_t, int32_t>);
+	m.def("PolygonSimplify_Negative", &PolyMath::PolygonSimplify_Negative<int64_t, int32_t>);
 
 }
