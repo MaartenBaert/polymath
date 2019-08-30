@@ -22,14 +22,18 @@ public:
 class MainWindow : public QMainWindow {
 	Q_OBJECT
 
-private:
-	enum ValueType {
-		VALUETYPE_I8,
-		VALUETYPE_I16,
-		VALUETYPE_I32,
-		VALUETYPE_I64,
-		VALUETYPE_F32,
-		VALUETYPE_F64,
+public:
+	enum Type {
+		TYPE_I8,
+		TYPE_I16,
+		TYPE_I32,
+		TYPE_I64,
+		TYPE_F32,
+		TYPE_F64,
+	};
+	enum Output {
+		OUTPUT_SIMPLE,
+		OUTPUT_MONOTONE,
 	};
 	enum TestType {
 		TESTTYPE_DUALGRID,
@@ -49,10 +53,11 @@ private:
 	// settings
 	QSpinBox *m_settings_seed_spinbox;
 	QComboBox *m_settings_type_combobox;
-	QCheckBox *m_settings_fusion_checkbox;
+	QComboBox *m_settings_output_combobox;
+	//QCheckBox *m_settings_fusion_checkbox;
 
 	// test
-	QComboBox *m_test_type_combobox;
+	QComboBox *m_test_combobox;
 	QStackedLayoutFixed *m_test_stackedlayout;
 
 	// test: dual grid
@@ -72,6 +77,7 @@ private:
 
 	// test: star
 	QSpinBox *m_test_star_points_spinbox;
+	QDoubleSpinBox *m_test_star_angle_spinbox;
 
 	Visualizer *m_visualizer;
 
@@ -80,7 +86,7 @@ public:
 	~MainWindow();
 
 private:
-	static double GetEpsilon(ValueType type);
+	static double GetEpsilon(Type type);
 
 public slots:
 	void OnTestChanged();

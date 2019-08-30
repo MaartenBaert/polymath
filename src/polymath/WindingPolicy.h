@@ -5,7 +5,7 @@
 namespace PolyMath {
 
 template<typename W = int32_t>
-struct WindingEngine_NonZero {
+struct WindingPolicy_NonZero {
 	typedef W WindingNumberType;
 	typedef W WindingWeightType;
 	static bool WindingRule(WindingNumberType x) {
@@ -14,7 +14,7 @@ struct WindingEngine_NonZero {
 };
 
 template<typename W = int32_t>
-struct WindingEngine_EvenOdd {
+struct WindingPolicy_EvenOdd {
 	typedef W WindingNumberType;
 	typedef W WindingWeightType;
 	static bool WindingRule(WindingNumberType x) {
@@ -23,7 +23,7 @@ struct WindingEngine_EvenOdd {
 };
 
 template<typename W = int32_t>
-struct WindingEngine_Positive {
+struct WindingPolicy_Positive {
 	typedef W WindingNumberType;
 	typedef W WindingWeightType;
 	static bool WindingRule(WindingNumberType x) {
@@ -32,7 +32,7 @@ struct WindingEngine_Positive {
 };
 
 template<typename W = int32_t>
-struct WindingEngine_Negative {
+struct WindingPolicy_Negative {
 	typedef W WindingNumberType;
 	typedef W WindingWeightType;
 	static bool WindingRule(WindingNumberType x) {

@@ -2,39 +2,40 @@
 
 #include "Common.h"
 
+#include "OutputPolicy.h"
 #include "Polygon.h"
 #include "PolygonPoint.h"
 #include "SweepEngine.h"
 #include "Vertex.h"
 #include "Visualization.h"
-#include "WindingEngine.h"
+#include "WindingPolicy.h"
 
 namespace PolyMath {
 
 template<typename T, typename W>
 Polygon<T> PolygonSimplify_NonZero(const Polygon<T, W> &polygon) {
-	SweepEngine<T, WindingEngine_NonZero<W>> engine(polygon);
+	SweepEngine<T, OutputPolicy_Simple<T>, WindingPolicy_NonZero<W>> engine(polygon);
 	engine.Process();
 	return engine.Result();
 }
 
 template<typename T, typename W>
 Polygon<T> PolygonSimplify_EvenOdd(const Polygon<T, W> &polygon) {
-	SweepEngine<T, WindingEngine_EvenOdd<W>> engine(polygon);
+	SweepEngine<T, OutputPolicy_Simple<T>, WindingPolicy_EvenOdd<W>> engine(polygon);
 	engine.Process();
 	return engine.Result();
 }
 
 template<typename T, typename W>
 Polygon<T> PolygonSimplify_Positive(const Polygon<T, W> &polygon) {
-	SweepEngine<T, WindingEngine_Positive<W>> engine(polygon);
+	SweepEngine<T, OutputPolicy_Simple<T>, WindingPolicy_Positive<W>> engine(polygon);
 	engine.Process();
 	return engine.Result();
 }
 
 template<typename T, typename W>
 Polygon<T> PolygonSimplify_Negative(const Polygon<T, W> &polygon) {
-	SweepEngine<T, WindingEngine_Negative<W>> engine(polygon);
+	SweepEngine<T, OutputPolicy_Simple<T>, WindingPolicy_Negative<W>> engine(polygon);
 	engine.Process();
 	return engine.Result();
 }

@@ -7,11 +7,11 @@
 
 namespace TestGenerators {
 
-void DualGrid(uint64_t seed, DualGridType type, uint32_t grid_size, double grid_angle, bool holes, Polygon results[]) {
-	assert(grid_size != 0);
+void DualGrid(uint64_t seed, DualGridType type, uint32_t size, double angle, bool holes, Polygon results[]) {
+	assert(size != 0);
 
 	std::mt19937_64 rng(seed * SEED_MULT + SEED_ADD);
-	double grid_step = 1.4 / double(grid_size), grid_rot = M_PI / 180.0 * grid_angle;
+	double grid_step = 1.4 / double(size), grid_rot = M_PI / 180.0 * angle;
 
 	// select distributions
 	std::uniform_int_distribution<uint32_t> dist1;
@@ -39,20 +39,20 @@ void DualGrid(uint64_t seed, DualGridType type, uint32_t grid_size, double grid_
 		results[k].Clear();
 		double rot = (k == 0)? grid_rot : -grid_rot;
 		if(holes) {
-			double r = double(grid_size) * grid_step / 2.0;
+			double r = double(size) * grid_step / 2.0;
 			results[k].AddVertex(Vertex(-r * cos(rot) + r * sin(rot), -r * cos(rot) - r * sin(rot)));
 			results[k].AddVertex(Vertex( r * cos(rot) + r * sin(rot), -r * cos(rot) + r * sin(rot)));
 			results[k].AddVertex(Vertex( r * cos(rot) - r * sin(rot),  r * cos(rot) + r * sin(rot)));
 			results[k].AddVertex(Vertex(-r * cos(rot) - r * sin(rot),  r * cos(rot) - r * sin(rot)));
 			results[k].AddLoopEnd(1);
 		}
-		for(uint32_t gx = 0; gx < grid_size; ++gx) {
-			uint32_t gx2 = (13229 * gx) % grid_size;
-			for(uint32_t gy = 0; gy < grid_size; ++gy) {
-				uint32_t gy2 = (15937 * gy) % grid_size;
+		for(uint32_t gx = 0; gx < size; ++gx) {
+			uint32_t gx2 = (13229 * gx) % size;
+			for(uint32_t gy = 0; gy < size; ++gy) {
+				uint32_t gy2 = (15937 * gy) % size;
 				uint32_t n = dist1(rng);
-				double x1 = 0.5 * grid_step * double(2 * int32_t(gx2) - int32_t(grid_size) + 1);
-				double y1 = 0.5 * grid_step * double(2 * int32_t(gy2) - int32_t(grid_size) + 1);
+				double x1 = 0.5 * grid_step * double(2 * int32_t(gx2) - int32_t(size) + 1);
+				double y1 = 0.5 * grid_step * double(2 * int32_t(gy2) - int32_t(size) + 1);
 				double x2 = x1 * cos(rot) - y1 * sin(rot);
 				double y2 = y1 * cos(rot) + x1 * sin(rot);
 				for(uint32_t j = 0; j < n; ++j) {
@@ -187,18 +187,18 @@ Polygon EdgeCases(uint64_t seed, uint32_t num_lines, uint32_t num_polygons, doub
 	return result;
 }
 
-Polygon Star(uint32_t num_points) {
+Polygon Star(uint32_t num_points, double angle) {
 	assert(num_points != 0);
 
 	// generate polygon
 	Polygon result;
 	uint32_t num = 2 * num_points + 1;
 	for(uint32_t i = 0; i < num; ++i) {
-		double angle = M_PI * double(i) * double(num - 1) / double(num);
+		double angle2 = M_PI / 180.0 * angle + M_PI * double(i) * double(num - 1) / double(num);
 		double radius = 0.95;
 		result.AddVertex(Vertex(
-			cos(angle) * radius,
-			sin(angle) * radius
+			cos(angle2) * radius,
+			sin(angle2) * radius
 		));
 	}
 	result.AddLoopEnd(1);

@@ -19,11 +19,19 @@ struct Conversion {
 	typedef PolyMath::Polygon<T> Polygon2;
 	typedef PolyMath::Visualization<T> Visualization2;
 
-	static void Process(const Polygon &input, Visualizer *visualizer) {
+	static void Process(const Polygon &input, Visualizer *visualizer, MainWindow::Output output) {
+		switch(output) {
+			case MainWindow::OUTPUT_SIMPLE:   Process2<PolyMath::OutputPolicy_Simple  <T>>(input, visualizer); break;
+			case MainWindow::OUTPUT_MONOTONE: Process2<PolyMath::OutputPolicy_Monotone<T>>(input, visualizer); break;
+		}
+	}
+
+	template<class OutputPolicy>
+	static void Process2(const Polygon &input, Visualizer *visualizer) {
 
 		Polygon2 poly = TestGenerators::TypeConverter<T>::ConvertPolygonToType(input);
 
-		PolyMath::SweepEngine<T, PolyMath::WindingEngine_Positive<typename Polygon2::WindingWeightType>> engine(poly);
+		PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_Positive<>> engine(poly);
 		engine.Process();
 
 		std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
@@ -33,11 +41,19 @@ struct Conversion {
 
 	}
 
-	static void Visualize(const Polygon &input, Visualizer *visualizer) {
+	static void Visualize(const Polygon &input, Visualizer *visualizer, MainWindow::Output output) {
+		switch(output) {
+			case MainWindow::OUTPUT_SIMPLE:   Visualize2<PolyMath::OutputPolicy_Simple  <T>>(input, visualizer); break;
+			case MainWindow::OUTPUT_MONOTONE: Visualize2<PolyMath::OutputPolicy_Monotone<T>>(input, visualizer); break;
+		}
+	}
+
+	template<class OutputPolicy>
+	static void Visualize2(const Polygon &input, Visualizer *visualizer) {
 
 		Polygon2 poly = TestGenerators::TypeConverter<T>::ConvertPolygonToType(input);
 
-		PolyMath::SweepEngine<T, PolyMath::WindingEngine_Positive<typename Polygon2::WindingWeightType>> engine(poly);
+		PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_Positive<>> engine(poly);
 		engine.Process([&](){
 			std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
 			wrapper->SetPolygonInput(poly);
@@ -45,7 +61,7 @@ struct Conversion {
 			visualizer->SetWrapper(std::move(wrapper));
 			visualizer->update();
 			qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			std::this_thread::sleep_for(std::chrono::milliseconds(20));
 			//QMessageBox::information(nullptr, "Visualization", "...");
 		});
 
@@ -56,7 +72,15 @@ struct Conversion {
 
 	}
 
-	static void EdgeCases(size_t num_tests, size_t num_probes) {
+	static void EdgeCases(size_t num_tests, size_t num_probes, MainWindow::Output output) {
+		switch(output) {
+			case MainWindow::OUTPUT_SIMPLE:   EdgeCases2<PolyMath::OutputPolicy_Simple  <T>>(num_tests, num_probes); break;
+			case MainWindow::OUTPUT_MONOTONE: EdgeCases2<PolyMath::OutputPolicy_Monotone<T>>(num_tests, num_probes); break;
+		}
+	}
+
+	template<class OutputPolicy>
+	static void EdgeCases2(size_t num_tests, size_t num_probes) {
 
 		double eps = TestGenerators::TypeConverter<T>::Epsilon();
 
@@ -76,7 +100,7 @@ struct Conversion {
 
 			// process
 			Polygon2 poly_conv = TestGenerators::TypeConverter<T>::ConvertPolygonToType(poly);
-			PolyMath::SweepEngine<T, PolyMath::WindingEngine_EvenOdd<typename Polygon2::WindingWeightType>> engine(poly_conv);
+			PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_EvenOdd<>> engine(poly_conv);
 			engine.Process();
 			Polygon2 result_conv = engine.Result();
 			Polygon result = TestGenerators::TypeConverter<T>::ConvertPolygonFromType(result_conv);
@@ -141,23 +165,28 @@ MainWindow::MainWindow() {
 		m_settings_seed_spinbox->setValue(0);
 		m_settings_type_combobox = new QComboBox(groupbox_settings);
 		m_settings_type_combobox->addItems({"Int 8-bit", "Int 16-bit", "Int 32-bit", "Int 64-bit", "Float 32-bit", "Float 64-bit"});
-		m_settings_type_combobox->setCurrentIndex(VALUETYPE_F32);
-		m_settings_fusion_checkbox = new QCheckBox("Fusion", groupbox_settings);
+		m_settings_type_combobox->setCurrentIndex(TYPE_F32);
+		m_settings_output_combobox = new QComboBox(groupbox_settings);
+		m_settings_output_combobox->addItems({"Simple", "Monotone"});
+		m_settings_output_combobox->setCurrentIndex(OUTPUT_SIMPLE);
+		//m_settings_fusion_checkbox = new QCheckBox("Fusion", groupbox_settings);
 
 		connect(m_settings_seed_spinbox, SIGNAL(valueChanged(int)), this, SLOT(OnTestChanged()));
 		connect(m_settings_type_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
-		connect(m_settings_fusion_checkbox, SIGNAL(stateChanged(int)), this, SLOT(OnTestChanged()));
+		connect(m_settings_output_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
+		//connect(m_settings_fusion_checkbox, SIGNAL(stateChanged(int)), this, SLOT(OnTestChanged()));
 
 		QFormLayout *layout = new QFormLayout(groupbox_settings);
-		layout->addRow("Type", m_settings_type_combobox);
 		layout->addRow("Seed", m_settings_seed_spinbox);
-		layout->addRow(m_settings_fusion_checkbox);
+		layout->addRow("Type", m_settings_type_combobox);
+		layout->addRow("Output", m_settings_output_combobox);
+		//layout->addRow(m_settings_fusion_checkbox);
 	}
 	QGroupBox *groupbox_test = new QGroupBox("Test", centralwidget);
 	{
-		m_test_type_combobox = new QComboBox(groupbox_test);
-		m_test_type_combobox->addItems({"Dual Grid", "Orthogonal", "Edge Cases", "Star"});
-		m_test_type_combobox->setCurrentIndex(TESTTYPE_DUALGRID);
+		m_test_combobox = new QComboBox(groupbox_test);
+		m_test_combobox->addItems({"Dual Grid", "Orthogonal", "Edge Cases", "Star"});
+		m_test_combobox->setCurrentIndex(TESTTYPE_DUALGRID);
 
 		QWidget *page_dualgrid = new QWidget(groupbox_test);
 		{
@@ -232,18 +261,25 @@ MainWindow::MainWindow() {
 			m_test_star_points_spinbox = new QSpinBox(page_star);
 			m_test_star_points_spinbox->setRange(1, 1000);
 			m_test_star_points_spinbox->setValue(10);
+			m_test_star_angle_spinbox = new QDoubleSpinBox(page_dualgrid);
+			m_test_star_angle_spinbox->setRange(0.0, 90.0);
+			m_test_star_angle_spinbox->setDecimals(1);
+			m_test_star_angle_spinbox->setSingleStep(0.1);
+			m_test_star_angle_spinbox->setValue(20.0);
 
 			connect(m_test_star_points_spinbox, SIGNAL(valueChanged(int)), this, SLOT(OnTestChanged()));
+			connect(m_test_star_angle_spinbox, SIGNAL(valueChanged(double)), this, SLOT(OnTestChanged()));
 
 			QFormLayout *layout = new QFormLayout(page_star);
 			layout->setContentsMargins(0, 0, 0, 0);
 			layout->addRow("Points", m_test_star_points_spinbox);
+			layout->addRow("Angle", m_test_star_angle_spinbox);
 		}
 
-		connect(m_test_type_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
+		connect(m_test_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
 
 		QFormLayout *layout = new QFormLayout(groupbox_test);
-		layout->addRow("Type", m_test_type_combobox);
+		layout->addRow("Test", m_test_combobox);
 		{
 			m_test_stackedlayout = new QStackedLayoutFixed();
 			layout->addRow(m_test_stackedlayout);
@@ -287,14 +323,14 @@ MainWindow::~MainWindow() {
 	// nothing
 }
 
-double MainWindow::GetEpsilon(MainWindow::ValueType type) {
+double MainWindow::GetEpsilon(MainWindow::Type type) {
 	switch(type) {
-		case VALUETYPE_I8 : return TestGenerators::TypeConverter<int8_t >::Epsilon();
-		case VALUETYPE_I16: return TestGenerators::TypeConverter<int16_t>::Epsilon();
-		case VALUETYPE_I32: return TestGenerators::TypeConverter<int32_t>::Epsilon();
-		case VALUETYPE_I64: return TestGenerators::TypeConverter<int64_t>::Epsilon();
-		case VALUETYPE_F32: return TestGenerators::TypeConverter<float  >::Epsilon();
-		case VALUETYPE_F64: return TestGenerators::TypeConverter<double >::Epsilon();
+		case TYPE_I8 : return TestGenerators::TypeConverter<int8_t >::Epsilon();
+		case TYPE_I16: return TestGenerators::TypeConverter<int16_t>::Epsilon();
+		case TYPE_I32: return TestGenerators::TypeConverter<int32_t>::Epsilon();
+		case TYPE_I64: return TestGenerators::TypeConverter<int64_t>::Epsilon();
+		case TYPE_F32: return TestGenerators::TypeConverter<float  >::Epsilon();
+		case TYPE_F64: return TestGenerators::TypeConverter<double >::Epsilon();
 	}
 	assert(false);
 	return 0.0;
@@ -303,10 +339,11 @@ double MainWindow::GetEpsilon(MainWindow::ValueType type) {
 void MainWindow::OnTestChanged() {
 
 	uint64_t settings_seed = uint64_t(m_settings_seed_spinbox->value());
-	ValueType settings_type = ValueType(m_settings_type_combobox->currentIndex());
-	bool settings_fusion = m_settings_fusion_checkbox->isChecked();
+	Type settings_type = Type(m_settings_type_combobox->currentIndex());
+	Output settings_output = Output(m_settings_output_combobox->currentIndex());
+	//bool settings_fusion = m_settings_fusion_checkbox->isChecked();
 
-	TestType testtype = TestType(m_test_type_combobox->currentIndex());
+	TestType testtype = TestType(m_test_combobox->currentIndex());
 	m_test_stackedlayout->setCurrentIndex(testtype);
 
 	switch(testtype) {
@@ -336,32 +373,35 @@ void MainWindow::OnTestChanged() {
 		}
 		case TESTTYPE_STAR: {
 			uint32_t star_points = uint32_t(m_test_star_points_spinbox->value());
-			m_polygon = TestGenerators::Star(star_points);
+			double star_angle = m_test_star_angle_spinbox->value();
+			m_polygon = TestGenerators::Star(star_points, star_angle);
 			break;
 		}
 	}
 
 	switch(settings_type) {
-		case VALUETYPE_I8 : Conversion<int8_t >::Process(m_polygon, m_visualizer); break;
-		case VALUETYPE_I16: Conversion<int16_t>::Process(m_polygon, m_visualizer); break;
-		case VALUETYPE_I32: Conversion<int32_t>::Process(m_polygon, m_visualizer); break;
-		case VALUETYPE_I64: Conversion<int64_t>::Process(m_polygon, m_visualizer); break;
-		case VALUETYPE_F32: Conversion<float  >::Process(m_polygon, m_visualizer); break;
-		case VALUETYPE_F64: Conversion<double >::Process(m_polygon, m_visualizer); break;
+		case TYPE_I8 : Conversion<int8_t >::Process(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_I16: Conversion<int16_t>::Process(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_I32: Conversion<int32_t>::Process(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_I64: Conversion<int64_t>::Process(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_F32: Conversion<float  >::Process(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_F64: Conversion<double >::Process(m_polygon, m_visualizer, settings_output); break;
 	}
 
 }
 
 void MainWindow::OnButtonVisualize() {
 
-	ValueType type = ValueType(m_settings_type_combobox->currentIndex());
-	switch(type) {
-		case VALUETYPE_I8 : Conversion<int8_t >::Visualize(m_polygon, m_visualizer); break;
-		case VALUETYPE_I16: Conversion<int16_t>::Visualize(m_polygon, m_visualizer); break;
-		case VALUETYPE_I32: Conversion<int32_t>::Visualize(m_polygon, m_visualizer); break;
-		case VALUETYPE_I64: Conversion<int64_t>::Visualize(m_polygon, m_visualizer); break;
-		case VALUETYPE_F32: Conversion<float  >::Visualize(m_polygon, m_visualizer); break;
-		case VALUETYPE_F64: Conversion<double >::Visualize(m_polygon, m_visualizer); break;
+	Type settings_type = Type(m_settings_type_combobox->currentIndex());
+	Output settings_output = Output(m_settings_output_combobox->currentIndex());
+
+	switch(settings_type) {
+		case TYPE_I8 : Conversion<int8_t >::Visualize(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_I16: Conversion<int16_t>::Visualize(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_I32: Conversion<int32_t>::Visualize(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_I64: Conversion<int64_t>::Visualize(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_F32: Conversion<float  >::Visualize(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_F64: Conversion<double >::Visualize(m_polygon, m_visualizer, settings_output); break;
 	}
 
 }
@@ -369,15 +409,16 @@ void MainWindow::OnButtonVisualize() {
 void MainWindow::OnButtonEdgeCases() {
 
 	size_t num_tests = 1000, num_probes = 100;
+	Type settings_type = Type(m_settings_type_combobox->currentIndex());
+	Output settings_output = Output(m_settings_output_combobox->currentIndex());
 
-	ValueType type = ValueType(m_settings_type_combobox->currentIndex());
-	switch(type) {
-		case VALUETYPE_I8 : Conversion<int8_t >::EdgeCases(num_tests, num_probes); break;
-		case VALUETYPE_I16: Conversion<int16_t>::EdgeCases(num_tests, num_probes); break;
-		case VALUETYPE_I32: Conversion<int32_t>::EdgeCases(num_tests, num_probes); break;
-		case VALUETYPE_I64: Conversion<int64_t>::EdgeCases(num_tests, num_probes); break;
-		case VALUETYPE_F32: Conversion<float  >::EdgeCases(num_tests, num_probes); break;
-		case VALUETYPE_F64: Conversion<double >::EdgeCases(num_tests, num_probes); break;
+	switch(settings_type) {
+		case TYPE_I8 : Conversion<int8_t >::EdgeCases(num_tests, num_probes, settings_output); break;
+		case TYPE_I16: Conversion<int16_t>::EdgeCases(num_tests, num_probes, settings_output); break;
+		case TYPE_I32: Conversion<int32_t>::EdgeCases(num_tests, num_probes, settings_output); break;
+		case TYPE_I64: Conversion<int64_t>::EdgeCases(num_tests, num_probes, settings_output); break;
+		case TYPE_F32: Conversion<float  >::EdgeCases(num_tests, num_probes, settings_output); break;
+		case TYPE_F64: Conversion<double >::EdgeCases(num_tests, num_probes, settings_output); break;
 	}
 
 }
