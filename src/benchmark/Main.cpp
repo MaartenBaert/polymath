@@ -1,7 +1,16 @@
-#include "BoostWrapper.h"
-#include "ClipperWrapper.h"
-#include "GeosWrapper.h"
 #include "PolyMathWrapper.h"
+
+#if BENCHMARK_WITH_BOOST
+#include "BoostWrapper.h"
+#endif
+
+#if BENCHMARK_WITH_CLIPPER
+#include "ClipperWrapper.h"
+#endif
+
+#if BENCHMARK_WITH_GEOS
+#include "GeosWrapper.h"
+#endif
 
 #include "polymath/PolyMath.h"
 #include "testgenerators/TestGenerators.h"
@@ -26,10 +35,16 @@ int main(int argc, char *argv[]) {
 		//{"PolyMath I64", PolyMathWrapper::BenchmarkUnion_I64, true},
 		{"PolyMath F32", PolyMathWrapper::BenchmarkUnion_F32, true},
 		//{"PolyMath F64", PolyMathWrapper::BenchmarkUnion_F64, true},
-		//{"Boost F32"   , BoostWrapper   ::BenchmarkUnion_F32, true},
+#if BENCHMARK_WITH_BOOST
+		{"Boost F32"   , BoostWrapper   ::BenchmarkUnion_F32, true},
 		//{"Boost F64"   , BoostWrapper   ::BenchmarkUnion_F64, true},
-		//{"Clipper"     , ClipperWrapper ::BenchmarkUnion    , true},
-		//{"Geos"        , GeosWrapper    ::BenchmarkUnion    , true},
+#endif
+#if BENCHMARK_WITH_BOOST
+		{"Clipper"     , ClipperWrapper ::BenchmarkUnion    , true},
+#endif
+#if BENCHMARK_WITH_GEOS
+		{"Geos"        , GeosWrapper    ::BenchmarkUnion    , true},
+#endif
 	};
 
 	auto W = std::setw(16);
@@ -72,6 +87,6 @@ int main(int argc, char *argv[]) {
 
 	}
 	std::cout << "Done." << std::endl;
-	
+
 	return 0;
 }

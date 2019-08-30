@@ -9,6 +9,10 @@ option(POLYMATH_BUILD_PYTHON "Build the PolyMath python module (requires pybind1
 option(POLYMATH_BUILD_TESTBED "Build the PolyMath testbed executable (requires Qt5)" OFF)
 option(POLYMATH_BUILD_UNITTESTS "Build the PolyMath unit tests executable" ON)
 
+option(BENCHMARK_WITH_BOOST "Compile benchmark with boost support" OFF)
+option(BENCHMARK_WITH_CLIPPER "Compile benchmark with clipper support" OFF)
+option(BENCHMARK_WITH_GEOS "Compile benchmark with geos support" OFF)
+
 option(WIDEMATH_ENABLE_ASM "Allow architecture-specific assembly instructions or intrinsics for better performance." ON)
 
 include(FeatureSummary)

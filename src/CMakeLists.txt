@@ -9,30 +9,46 @@ if(POLYMATH_BUILD_TESTBED)
 endif()
 
 set(benchmark_sources
-	benchmark/3rdparty/clipper.cpp
-	benchmark/3rdparty/clipper.hpp
-	benchmark/BoostWrapper.cpp
-	benchmark/BoostWrapper.h
-	benchmark/ClipperWrapper.cpp
-	benchmark/ClipperWrapper.h
-	benchmark/GeosWrapper.cpp
-	benchmark/GeosWrapper.h
 	benchmark/Main.cpp
 	benchmark/PolyMathWrapper.cpp
 	benchmark/PolyMathWrapper.h
 	benchmark/Wrappers.h
 )
+if(BENCHMARK_WITH_BOOST)
+	list(append benchmark_sources
+		benchmark/BoostWrapper.cpp
+		benchmark/BoostWrapper.h
+	)
+endif()
+if(BENCHMARK_WITH_CLIPPER)
+	list(append benchmark_sources
+		benchmark/3rdparty/clipper.cpp
+		benchmark/3rdparty/clipper.hpp
+		benchmark/ClipperWrapper.cpp
+		benchmark/ClipperWrapper.h
+	)
+endif()
+if(BENCHMARK_WITH_GEOS)
+	list(append benchmark_sources
+		benchmark/GeosWrapper.cpp
+		benchmark/GeosWrapper.h
+	)
+	list(append benchmark_libs
+		-lgeos
+	)
+endif()
 
 set(polymath_sources
 	polymath/Common.h
 	polymath/NumericalEngine.h
+	polymath/OutputPolicy.h
 	polymath/Polygon.h
 	polymath/PolygonPoint.h
 	polymath/PolyMath.h
 	polymath/SweepEngine.h
 	polymath/Vertex.h
 	polymath/Visualization.h
-	polymath/WindingEngine.h
+	polymath/WindingPolicy.h
 )
 
 set(python_sources
@@ -86,10 +102,13 @@ if(POLYMATH_BUILD_BENCHMARK)
 		${widemath_sources}
 	)
 	target_link_libraries(polymath-benchmark PRIVATE
-		-lgeos
+		${benchmark_libs}
 	)
 	target_compile_definitions(polymath-benchmark PRIVATE
 		${widemath_defines}
+		-DBENCHMARK_WITH_BOOST=$<BOOL:${BENCHMARK_WITH_BOOST}>
+		-DBENCHMARK_WITH_CLIPPER=$<BOOL:${BENCHMARK_WITH_CLIPPER}>
+		-DBENCHMARK_WITH_GEOS=$<BOOL:${BENCHMARK_WITH_GEOS}>
 	)
 endif()
 
