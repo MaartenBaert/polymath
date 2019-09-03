@@ -8,7 +8,7 @@
 
 namespace PolyMath {
 
-template<typename T, typename W = int32_t>
+template<typename T, typename W = default_winding_t>
 struct Polygon {
 
 	typedef T ValueType;

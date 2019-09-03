@@ -112,8 +112,11 @@ private:
 	// heap (intersections)
 	std::vector<SweepEdge*> m_heap;
 
-	// output engine
+	// output policy
 	OutputPolicy m_output_policy;
+
+	// winding policy
+	WindingPolicy m_winding_policy;
 
 private:
 
@@ -822,11 +825,11 @@ private:
 
 	void WindingNumberVerify() {
 		WindingNumberType winding_number = 0;
-		bool w1 = WindingPolicy::WindingRule(winding_number);
+		bool w1 = WindingPolicy::Evaluate(winding_number);
 		for(SweepEdge *edge = TreeFirst(); edge != nullptr; edge = TreeNext(edge)) {
 			winding_number += edge->m_winding_weight;
 			assert(edge->m_winding_number == winding_number);
-			bool w2 = WindingPolicy::WindingRule(winding_number);
+			bool w2 = WindingPolicy::Evaluate(winding_number);
 			if(w1 != w2) {
 				assert(edge->m_output_vertex != nullptr);
 				assert(edge->m_output_vertex_forward == w1);
@@ -897,8 +900,8 @@ private:
 		// update winding numbers
 		edge2->m_winding_number = edge1->m_winding_number;
 		edge1->m_winding_number -= edge2->m_winding_weight;
-		bool w1 = WindingPolicy::WindingRule(edge1->m_winding_number);
-		bool w2 = WindingPolicy::WindingRule(edge2->m_winding_number);
+		bool w1 = m_winding_policy.Evaluate(edge1->m_winding_number);
+		bool w2 = m_winding_policy.Evaluate(edge2->m_winding_number);
 
 		// update output
 		if(m_output_policy.HasOutputEdge(edge1->m_output_edge)) {
@@ -999,7 +1002,7 @@ private:
 		edge2->m_winding_number = winding_number;
 
 		// add output vertex
-		bool w1 = WindingPolicy::WindingRule(edge1->m_winding_number), w2 = WindingPolicy::WindingRule(edge2->m_winding_number);
+		bool w1 = m_winding_policy.Evaluate(edge1->m_winding_number), w2 = m_winding_policy.Evaluate(edge2->m_winding_number);
 		if(w1 == w2) {
 			m_output_policy.ClearOutputEdge(edge1->m_output_edge);
 			m_output_policy.ClearOutputEdge(edge2->m_output_edge);
@@ -1048,7 +1051,7 @@ private:
 
 		// update output vertex
 		if(m_output_policy.HasOutputEdge(edge->m_output_edge)) {
-			m_output_policy.OutputMiddleVertex(edge->m_output_edge, vertex->m_vertex, WindingPolicy::WindingRule(edge->m_winding_number));
+			m_output_policy.OutputMiddleVertex(edge->m_output_edge, vertex->m_vertex, m_winding_policy.Evaluate(edge->m_winding_number));
 		}
 
 #if POLYMATH_VERIFY
@@ -1117,7 +1120,7 @@ private:
 		// update output vertices
 		assert(m_output_policy.HasOutputEdge(edge1->m_output_edge) == m_output_policy.HasOutputEdge(edge2->m_output_edge));
 		if(m_output_policy.HasOutputEdge(edge1->m_output_edge)) {
-			bool w2 = WindingPolicy::WindingRule(edge2->m_winding_number);
+			bool w2 = m_winding_policy.Evaluate(edge2->m_winding_number);
 			typename OutputPolicy::OutputEdge *output_edge_prev, *output_edge_next;
 			if(OutputPolicy::STOP_NEEDS_PREV_NEXT && w2) {
 				output_edge_prev = FindPrevOutputEdge(edge_prev);
@@ -1142,7 +1145,8 @@ private:
 
 public:
 
-	SweepEngine(const Polygon<T, WindingWeightType> &polygon) {
+	SweepEngine(const Polygon<T, WindingWeightType> &polygon, OutputPolicy output_policy = OutputPolicy(), WindingPolicy winding_policy = WindingPolicy())
+		: m_output_policy(std::move(output_policy)), m_winding_policy(std::move(winding_policy)) {
 
 		// initialize
 		m_current_vertex = 0;
