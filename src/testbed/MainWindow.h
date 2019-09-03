@@ -33,6 +33,7 @@ public:
 	};
 	enum Output {
 		OUTPUT_SIMPLE,
+		OUTPUT_KEYHOLE,
 		OUTPUT_MONOTONE,
 	};
 	enum TestType {

@@ -904,16 +904,24 @@ private:
 		if(m_output_policy.HasOutputEdge(edge1->m_output_edge)) {
 			if(m_output_policy.HasOutputEdge(edge2->m_output_edge)) {
 				if(w1 == w2) {
-					m_output_policy.OutputStopVertex(edge2->m_output_edge, edge1->m_output_edge, intersection_vertex);
+					typename OutputPolicy::OutputEdge *output_edge_prev, *output_edge_next;
+					if(OutputPolicy::STOP_NEEDS_PREV_NEXT && w2) {
+						output_edge_prev = FindPrevOutputEdge(edge_prev);
+						output_edge_next = FindNextOutputEdge(edge_next);
+					} else {
+						output_edge_prev = nullptr;
+						output_edge_next = nullptr;
+					}
+					m_output_policy.OutputStopVertex(edge2->m_output_edge, edge1->m_output_edge, intersection_vertex, w2, output_edge_prev, output_edge_next);
 					m_output_policy.ClearOutputEdge(edge1->m_output_edge);
 					m_output_policy.ClearOutputEdge(edge2->m_output_edge);
 				} else {
-					m_output_policy.OutputMiddleVertex(edge2->m_output_edge, intersection_vertex);
-					m_output_policy.OutputMiddleVertex(edge1->m_output_edge, intersection_vertex);
+					m_output_policy.OutputMiddleVertex(edge2->m_output_edge, intersection_vertex, !w2);
+					m_output_policy.OutputMiddleVertex(edge1->m_output_edge, intersection_vertex, w2);
 					m_output_policy.SwapOutputEdges(edge1->m_output_edge, edge2->m_output_edge);
 				}
 			} else {
-				m_output_policy.OutputMiddleVertex(edge1->m_output_edge, intersection_vertex);
+				m_output_policy.OutputMiddleVertex(edge1->m_output_edge, intersection_vertex, w2);
 				if(w1 != w2) {
 					m_output_policy.CopyOutputEdge(edge1->m_output_edge, edge2->m_output_edge);
 					m_output_policy.ClearOutputEdge(edge1->m_output_edge);
@@ -921,7 +929,7 @@ private:
 			}
 		} else {
 			if(m_output_policy.HasOutputEdge(edge2->m_output_edge)) {
-				m_output_policy.OutputMiddleVertex(edge2->m_output_edge, intersection_vertex);
+				m_output_policy.OutputMiddleVertex(edge2->m_output_edge, intersection_vertex, w2);
 				if(w1 == w2) {
 					m_output_policy.CopyOutputEdge(edge2->m_output_edge, edge1->m_output_edge);
 					m_output_policy.ClearOutputEdge(edge2->m_output_edge);
@@ -936,7 +944,7 @@ private:
 						output_edge_prev = nullptr;
 						output_edge_next = nullptr;
 					}
-					m_output_policy.OutputStartVertex(edge1->m_output_edge, edge2->m_output_edge, intersection_vertex, output_edge_prev, output_edge_next, w2);
+					m_output_policy.OutputStartVertex(edge1->m_output_edge, edge2->m_output_edge, intersection_vertex, w2, output_edge_prev, output_edge_next);
 				}
 			}
 		}
@@ -1004,7 +1012,7 @@ private:
 				output_edge_prev = nullptr;
 				output_edge_next = nullptr;
 			}
-			m_output_policy.OutputStartVertex(edge1->m_output_edge, edge2->m_output_edge, vertex->m_vertex, output_edge_prev, output_edge_next, w2);
+			m_output_policy.OutputStartVertex(edge1->m_output_edge, edge2->m_output_edge, vertex->m_vertex, w2, output_edge_prev, output_edge_next);
 		}
 
 #if POLYMATH_VERIFY
@@ -1040,7 +1048,7 @@ private:
 
 		// update output vertex
 		if(m_output_policy.HasOutputEdge(edge->m_output_edge)) {
-			m_output_policy.OutputMiddleVertex(edge->m_output_edge, vertex->m_vertex);
+			m_output_policy.OutputMiddleVertex(edge->m_output_edge, vertex->m_vertex, WindingPolicy::WindingRule(edge->m_winding_number));
 		}
 
 #if POLYMATH_VERIFY
@@ -1109,7 +1117,16 @@ private:
 		// update output vertices
 		assert(m_output_policy.HasOutputEdge(edge1->m_output_edge) == m_output_policy.HasOutputEdge(edge2->m_output_edge));
 		if(m_output_policy.HasOutputEdge(edge1->m_output_edge)) {
-			m_output_policy.OutputStopVertex(edge1->m_output_edge, edge2->m_output_edge, vertex->m_vertex);
+			bool w2 = WindingPolicy::WindingRule(edge2->m_winding_number);
+			typename OutputPolicy::OutputEdge *output_edge_prev, *output_edge_next;
+			if(OutputPolicy::STOP_NEEDS_PREV_NEXT && w2) {
+				output_edge_prev = FindPrevOutputEdge(edge_prev);
+				output_edge_next = FindNextOutputEdge(edge_next);
+			} else {
+				output_edge_prev = nullptr;
+				output_edge_next = nullptr;
+			}
+			m_output_policy.OutputStopVertex(edge1->m_output_edge, edge2->m_output_edge, vertex->m_vertex, w2, output_edge_prev, output_edge_next);
 		}
 
 		// remove sweep edges
