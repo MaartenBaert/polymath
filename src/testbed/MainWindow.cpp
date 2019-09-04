@@ -20,20 +20,20 @@ struct Conversion {
 	typedef PolyMath::Polygon<T> Polygon2;
 	typedef PolyMath::Visualization<T> Visualization2;
 
-	static void Process(const Polygon &input, Visualizer *visualizer, MainWindow::Output output) {
+	static void Process(const Polygon &input, Visualizer *visualizer, MainWindow::Output output, PolyMath::WindingRule winding_rule) {
 		switch(output) {
-			case MainWindow::OUTPUT_SIMPLE:   Process2<PolyMath::OutputPolicy_Simple  <T>>(input, visualizer); break;
-			case MainWindow::OUTPUT_KEYHOLE:  Process2<PolyMath::OutputPolicy_Keyhole <T>>(input, visualizer); break;
-			case MainWindow::OUTPUT_MONOTONE: Process2<PolyMath::OutputPolicy_Monotone<T>>(input, visualizer); break;
+			case MainWindow::OUTPUT_SIMPLE:   Process2<PolyMath::OutputPolicy_Simple  <T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_KEYHOLE:  Process2<PolyMath::OutputPolicy_Keyhole <T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_MONOTONE: Process2<PolyMath::OutputPolicy_Monotone<T>>(input, visualizer, winding_rule); break;
 		}
 	}
 
 	template<class OutputPolicy>
-	static void Process2(const Polygon &input, Visualizer *visualizer) {
+	static void Process2(const Polygon &input, Visualizer *visualizer, PolyMath::WindingRule winding_rule) {
 
 		Polygon2 poly = TestGenerators::TypeConverter<T>::ConvertPolygonToType(input);
 
-		PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_Positive<>> engine(poly);
+		PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_Dynamic<>> engine(poly, OutputPolicy(), PolyMath::WindingPolicy_Dynamic<>(winding_rule));
 		engine.Process();
 
 		std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
@@ -43,20 +43,20 @@ struct Conversion {
 
 	}
 
-	static void Visualize(const Polygon &input, Visualizer *visualizer, MainWindow::Output output) {
+	static void Visualize(const Polygon &input, Visualizer *visualizer, MainWindow::Output output, PolyMath::WindingRule winding_rule) {
 		switch(output) {
-			case MainWindow::OUTPUT_SIMPLE:   Visualize2<PolyMath::OutputPolicy_Simple  <T>>(input, visualizer); break;
-			case MainWindow::OUTPUT_KEYHOLE:  Visualize2<PolyMath::OutputPolicy_Keyhole <T>>(input, visualizer); break;
-			case MainWindow::OUTPUT_MONOTONE: Visualize2<PolyMath::OutputPolicy_Monotone<T>>(input, visualizer); break;
+			case MainWindow::OUTPUT_SIMPLE:   Visualize2<PolyMath::OutputPolicy_Simple  <T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_KEYHOLE:  Visualize2<PolyMath::OutputPolicy_Keyhole <T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_MONOTONE: Visualize2<PolyMath::OutputPolicy_Monotone<T>>(input, visualizer, winding_rule); break;
 		}
 	}
 
 	template<class OutputPolicy>
-	static void Visualize2(const Polygon &input, Visualizer *visualizer) {
+	static void Visualize2(const Polygon &input, Visualizer *visualizer, PolyMath::WindingRule winding_rule) {
 
 		Polygon2 poly = TestGenerators::TypeConverter<T>::ConvertPolygonToType(input);
 
-		PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_Positive<>> engine(poly);
+		PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_Dynamic<>> engine(poly, OutputPolicy(), PolyMath::WindingPolicy_Dynamic<>(winding_rule));
 		engine.Process([&](){
 			std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
 			wrapper->SetPolygonInput(poly);
@@ -75,16 +75,16 @@ struct Conversion {
 
 	}
 
-	static void EdgeCases(size_t num_tests, size_t num_probes, MainWindow::Output output) {
+	static void EdgeCases(size_t num_tests, size_t num_probes, MainWindow::Output output, PolyMath::WindingRule winding_rule) {
 		switch(output) {
-			case MainWindow::OUTPUT_SIMPLE:   EdgeCases2<PolyMath::OutputPolicy_Simple  <T>>(num_tests, num_probes); break;
-			case MainWindow::OUTPUT_KEYHOLE:  EdgeCases2<PolyMath::OutputPolicy_Keyhole <T>>(num_tests, num_probes); break;
-			case MainWindow::OUTPUT_MONOTONE: EdgeCases2<PolyMath::OutputPolicy_Monotone<T>>(num_tests, num_probes); break;
+			case MainWindow::OUTPUT_SIMPLE:   EdgeCases2<PolyMath::OutputPolicy_Simple  <T>>(num_tests, num_probes, winding_rule); break;
+			case MainWindow::OUTPUT_KEYHOLE:  EdgeCases2<PolyMath::OutputPolicy_Keyhole <T>>(num_tests, num_probes, winding_rule); break;
+			case MainWindow::OUTPUT_MONOTONE: EdgeCases2<PolyMath::OutputPolicy_Monotone<T>>(num_tests, num_probes, winding_rule); break;
 		}
 	}
 
 	template<class OutputPolicy>
-	static void EdgeCases2(size_t num_tests, size_t num_probes) {
+	static void EdgeCases2(size_t num_tests, size_t num_probes, PolyMath::WindingRule winding_rule) {
 
 		double eps = TestGenerators::TypeConverter<T>::Epsilon();
 
@@ -104,7 +104,7 @@ struct Conversion {
 
 			// process
 			Polygon2 poly_conv = TestGenerators::TypeConverter<T>::ConvertPolygonToType(poly);
-			PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_EvenOdd<>> engine(poly_conv);
+			PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_Dynamic<>> engine(poly_conv, OutputPolicy(), PolyMath::WindingPolicy_Dynamic<>(winding_rule));
 			engine.Process();
 			Polygon2 result_conv = engine.Result();
 			Polygon result = TestGenerators::TypeConverter<T>::ConvertPolygonFromType(result_conv);
@@ -173,17 +173,22 @@ MainWindow::MainWindow() {
 		m_settings_output_combobox = new QComboBox(groupbox_settings);
 		m_settings_output_combobox->addItems({"Simple", "Keyhole", "Monotone"});
 		m_settings_output_combobox->setCurrentIndex(OUTPUT_SIMPLE);
+		m_settings_winding_combobox = new QComboBox(groupbox_settings);
+		m_settings_winding_combobox->addItems({"NonZero", "EvenOdd", "Positive", "Negative"});
+		m_settings_winding_combobox->setCurrentIndex(PolyMath::WINDINGRULE_POSITIVE);
 		//m_settings_fusion_checkbox = new QCheckBox("Fusion", groupbox_settings);
 
 		connect(m_settings_seed_spinbox, SIGNAL(valueChanged(int)), this, SLOT(OnTestChanged()));
 		connect(m_settings_type_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
 		connect(m_settings_output_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
+		connect(m_settings_winding_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
 		//connect(m_settings_fusion_checkbox, SIGNAL(stateChanged(int)), this, SLOT(OnTestChanged()));
 
 		QFormLayout *layout = new QFormLayout(groupbox_settings);
 		layout->addRow("Seed", m_settings_seed_spinbox);
-		layout->addRow("Type", m_settings_type_combobox);
-		layout->addRow("Output", m_settings_output_combobox);
+		layout->addRow("Vertex Type", m_settings_type_combobox);
+		layout->addRow("Output Mode", m_settings_output_combobox);
+		layout->addRow("Winding Rule", m_settings_winding_combobox);
 		//layout->addRow(m_settings_fusion_checkbox);
 	}
 	QGroupBox *groupbox_test = new QGroupBox("Test", centralwidget);
@@ -345,6 +350,7 @@ void MainWindow::OnTestChanged() {
 	uint64_t settings_seed = uint64_t(m_settings_seed_spinbox->value());
 	Type settings_type = Type(m_settings_type_combobox->currentIndex());
 	Output settings_output = Output(m_settings_output_combobox->currentIndex());
+	PolyMath::WindingRule settings_winding = PolyMath::WindingRule(m_settings_winding_combobox->currentIndex());
 	//bool settings_fusion = m_settings_fusion_checkbox->isChecked();
 
 	TestType testtype = TestType(m_test_combobox->currentIndex());
@@ -384,12 +390,12 @@ void MainWindow::OnTestChanged() {
 	}
 
 	switch(settings_type) {
-		case TYPE_I8 : Conversion<int8_t >::Process(m_polygon, m_visualizer, settings_output); break;
-		case TYPE_I16: Conversion<int16_t>::Process(m_polygon, m_visualizer, settings_output); break;
-		case TYPE_I32: Conversion<int32_t>::Process(m_polygon, m_visualizer, settings_output); break;
-		case TYPE_I64: Conversion<int64_t>::Process(m_polygon, m_visualizer, settings_output); break;
-		case TYPE_F32: Conversion<float  >::Process(m_polygon, m_visualizer, settings_output); break;
-		case TYPE_F64: Conversion<double >::Process(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_I8 : Conversion<int8_t >::Process(m_polygon, m_visualizer, settings_output, settings_winding); break;
+		case TYPE_I16: Conversion<int16_t>::Process(m_polygon, m_visualizer, settings_output, settings_winding); break;
+		case TYPE_I32: Conversion<int32_t>::Process(m_polygon, m_visualizer, settings_output, settings_winding); break;
+		case TYPE_I64: Conversion<int64_t>::Process(m_polygon, m_visualizer, settings_output, settings_winding); break;
+		case TYPE_F32: Conversion<float  >::Process(m_polygon, m_visualizer, settings_output, settings_winding); break;
+		case TYPE_F64: Conversion<double >::Process(m_polygon, m_visualizer, settings_output, settings_winding); break;
 	}
 
 }
@@ -398,14 +404,15 @@ void MainWindow::OnButtonVisualize() {
 
 	Type settings_type = Type(m_settings_type_combobox->currentIndex());
 	Output settings_output = Output(m_settings_output_combobox->currentIndex());
+	PolyMath::WindingRule settings_winding = PolyMath::WindingRule(m_settings_winding_combobox->currentIndex());
 
 	switch(settings_type) {
-		case TYPE_I8 : Conversion<int8_t >::Visualize(m_polygon, m_visualizer, settings_output); break;
-		case TYPE_I16: Conversion<int16_t>::Visualize(m_polygon, m_visualizer, settings_output); break;
-		case TYPE_I32: Conversion<int32_t>::Visualize(m_polygon, m_visualizer, settings_output); break;
-		case TYPE_I64: Conversion<int64_t>::Visualize(m_polygon, m_visualizer, settings_output); break;
-		case TYPE_F32: Conversion<float  >::Visualize(m_polygon, m_visualizer, settings_output); break;
-		case TYPE_F64: Conversion<double >::Visualize(m_polygon, m_visualizer, settings_output); break;
+		case TYPE_I8 : Conversion<int8_t >::Visualize(m_polygon, m_visualizer, settings_output, settings_winding); break;
+		case TYPE_I16: Conversion<int16_t>::Visualize(m_polygon, m_visualizer, settings_output, settings_winding); break;
+		case TYPE_I32: Conversion<int32_t>::Visualize(m_polygon, m_visualizer, settings_output, settings_winding); break;
+		case TYPE_I64: Conversion<int64_t>::Visualize(m_polygon, m_visualizer, settings_output, settings_winding); break;
+		case TYPE_F32: Conversion<float  >::Visualize(m_polygon, m_visualizer, settings_output, settings_winding); break;
+		case TYPE_F64: Conversion<double >::Visualize(m_polygon, m_visualizer, settings_output, settings_winding); break;
 	}
 
 }
@@ -415,14 +422,15 @@ void MainWindow::OnButtonEdgeCases() {
 	size_t num_tests = 1000, num_probes = 100;
 	Type settings_type = Type(m_settings_type_combobox->currentIndex());
 	Output settings_output = Output(m_settings_output_combobox->currentIndex());
+	PolyMath::WindingRule settings_winding = PolyMath::WindingRule(m_settings_winding_combobox->currentIndex());
 
 	switch(settings_type) {
-		case TYPE_I8 : Conversion<int8_t >::EdgeCases(num_tests, num_probes, settings_output); break;
-		case TYPE_I16: Conversion<int16_t>::EdgeCases(num_tests, num_probes, settings_output); break;
-		case TYPE_I32: Conversion<int32_t>::EdgeCases(num_tests, num_probes, settings_output); break;
-		case TYPE_I64: Conversion<int64_t>::EdgeCases(num_tests, num_probes, settings_output); break;
-		case TYPE_F32: Conversion<float  >::EdgeCases(num_tests, num_probes, settings_output); break;
-		case TYPE_F64: Conversion<double >::EdgeCases(num_tests, num_probes, settings_output); break;
+		case TYPE_I8 : Conversion<int8_t >::EdgeCases(num_tests, num_probes, settings_output, settings_winding); break;
+		case TYPE_I16: Conversion<int16_t>::EdgeCases(num_tests, num_probes, settings_output, settings_winding); break;
+		case TYPE_I32: Conversion<int32_t>::EdgeCases(num_tests, num_probes, settings_output, settings_winding); break;
+		case TYPE_I64: Conversion<int64_t>::EdgeCases(num_tests, num_probes, settings_output, settings_winding); break;
+		case TYPE_F32: Conversion<float  >::EdgeCases(num_tests, num_probes, settings_output, settings_winding); break;
+		case TYPE_F64: Conversion<double >::EdgeCases(num_tests, num_probes, settings_output, settings_winding); break;
 	}
 
 }

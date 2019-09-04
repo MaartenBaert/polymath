@@ -55,6 +55,7 @@ private:
 	QSpinBox *m_settings_seed_spinbox;
 	QComboBox *m_settings_type_combobox;
 	QComboBox *m_settings_output_combobox;
+	QComboBox *m_settings_winding_combobox;
 	//QCheckBox *m_settings_fusion_checkbox;
 
 	// test
