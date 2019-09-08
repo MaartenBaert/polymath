@@ -33,8 +33,10 @@ int main(int argc, char *argv[]) {
 		//{"PolyMath I16", PolyMathWrapper::BenchmarkUnion_I16, true},
 		//{"PolyMath I32", PolyMathWrapper::BenchmarkUnion_I32, true},
 		//{"PolyMath I64", PolyMathWrapper::BenchmarkUnion_I64, true},
-		{"PolyMath F32", PolyMathWrapper::BenchmarkUnion_F32, true},
+		//{"PolyMath F32", PolyMathWrapper::BenchmarkUnion_F32, true},
 		//{"PolyMath F64", PolyMathWrapper::BenchmarkUnion_F64, true},
+		{"PolyMath S1", PolyMathWrapper::BenchmarkUnion_S1, true},
+		{"PolyMath S2", PolyMathWrapper::BenchmarkUnion_S2, true},
 #if BENCHMARK_WITH_BOOST
 		{"Boost F32"   , BoostWrapper   ::BenchmarkUnion_F32, true},
 		//{"Boost F64"   , BoostWrapper   ::BenchmarkUnion_F64, true},

@@ -13,4 +13,7 @@ double BenchmarkUnion_I64(const Polygon &poly1, const Polygon &poly2, Polygon &r
 double BenchmarkUnion_F32(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops);
 double BenchmarkUnion_F64(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops);
 
+double BenchmarkUnion_S1(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops);
+double BenchmarkUnion_S2(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops);
+
 };

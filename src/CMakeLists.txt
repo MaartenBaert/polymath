@@ -46,6 +46,7 @@ set(polymath_sources
 	polymath/PolygonPoint.h
 	polymath/PolyMath.h
 	polymath/SweepEngine.h
+	polymath/SweepTree.h
 	polymath/Vertex.h
 	polymath/Visualization.h
 	polymath/WindingPolicy.h

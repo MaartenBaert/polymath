@@ -56,7 +56,7 @@ struct Conversion {
 
 		Polygon2 poly = TestGenerators::TypeConverter<T>::ConvertPolygonToType(input);
 
-		PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_Dynamic<>> engine(poly, OutputPolicy(), PolyMath::WindingPolicy_Dynamic<>(winding_rule));
+		PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_Dynamic<>, PolyMath::SweepTree_Basic2> engine(poly, OutputPolicy(), PolyMath::WindingPolicy_Dynamic<>(winding_rule));
 		engine.Process([&](){
 			std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
 			wrapper->SetPolygonInput(poly);

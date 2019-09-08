@@ -80,8 +80,7 @@ PYBIND11_MODULE(polymath, m) {
 			.value("NONZERO", PolyMath::WINDINGRULE_NONZERO)
 			.value("EVENODD", PolyMath::WINDINGRULE_EVENODD)
 			.value("POSITIVE", PolyMath::WINDINGRULE_POSITIVE)
-			.value("NEGATIVE", PolyMath::WINDINGRULE_NEGATIVE)
-			.export_values();
+			.value("NEGATIVE", PolyMath::WINDINGRULE_NEGATIVE);
 
 	RegisterPolygon<int32_t>(m, "Polygon_I32");
 	RegisterPolygon<int64_t>(m, "Polygon_I64");

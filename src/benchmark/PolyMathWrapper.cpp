@@ -24,7 +24,31 @@ struct Conversion {
 		// benchmark
 		auto t1 = std::chrono::high_resolution_clock::now();
 		for(size_t loop = 0; loop < loops; ++loop) {
-			c = PolyMath::PolygonSimplify_Positive(ab);
+			PolyMath::SweepEngine<T, PolyMath::OutputPolicy_Simple<T>, PolyMath::WindingPolicy_Positive<>> engine(ab);
+			engine.Process();
+			c = engine.Result();
+		}
+		auto t2 = std::chrono::high_resolution_clock::now();
+
+		// export
+		result = TestGenerators::TypeConverter<T>::ConvertPolygonFromType(c);
+
+		return std::chrono::duration<double>(t2 - t1).count() / double(loops);
+	}
+
+	static double BenchmarkUnion2(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops) {
+
+		// import
+		Polygon2 ab, c;
+		ab += TestGenerators::TypeConverter<T>::ConvertPolygonToType(poly1);
+		ab += TestGenerators::TypeConverter<T>::ConvertPolygonToType(poly2);
+
+		// benchmark
+		auto t1 = std::chrono::high_resolution_clock::now();
+		for(size_t loop = 0; loop < loops; ++loop) {
+			PolyMath::SweepEngine<T, PolyMath::OutputPolicy_Simple<T>, PolyMath::WindingPolicy_Positive<>, PolyMath::SweepTree_Basic2> engine(ab);
+			engine.Process();
+			c = engine.Result();
 		}
 		auto t2 = std::chrono::high_resolution_clock::now();
 
@@ -42,5 +66,8 @@ double BenchmarkUnion_I32(const Polygon &poly1, const Polygon &poly2, Polygon &r
 double BenchmarkUnion_I64(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops) { return Conversion<int64_t>::BenchmarkUnion(poly1, poly2, result, loops); }
 double BenchmarkUnion_F32(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops) { return Conversion<float>::BenchmarkUnion(poly1, poly2, result, loops); }
 double BenchmarkUnion_F64(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops) { return Conversion<double>::BenchmarkUnion(poly1, poly2, result, loops); }
+
+double BenchmarkUnion_S1(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops) { return Conversion<float>::BenchmarkUnion(poly1, poly2, result, loops); }
+double BenchmarkUnion_S2(const Polygon &poly1, const Polygon &poly2, Polygon &result, size_t loops) { return Conversion<float>::BenchmarkUnion2(poly1, poly2, result, loops); }
 
 }
