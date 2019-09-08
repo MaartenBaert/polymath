@@ -22,9 +22,10 @@ struct Conversion {
 
 	static void Process(const Polygon &input, Visualizer *visualizer, MainWindow::Output output, PolyMath::WindingRule winding_rule) {
 		switch(output) {
-			case MainWindow::OUTPUT_SIMPLE:   Process2<PolyMath::OutputPolicy_Simple  <T>>(input, visualizer, winding_rule); break;
-			case MainWindow::OUTPUT_KEYHOLE:  Process2<PolyMath::OutputPolicy_Keyhole <T>>(input, visualizer, winding_rule); break;
-			case MainWindow::OUTPUT_MONOTONE: Process2<PolyMath::OutputPolicy_Monotone<T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_SIMPLE:    Process2<PolyMath::OutputPolicy_Simple   <T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_KEYHOLE:   Process2<PolyMath::OutputPolicy_Keyhole  <T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_MONOTONE:  Process2<PolyMath::OutputPolicy_Monotone <T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_TRIANGLES: Process2<PolyMath::OutputPolicy_Triangles<T>>(input, visualizer, winding_rule); break;
 		}
 	}
 
@@ -45,9 +46,10 @@ struct Conversion {
 
 	static void Visualize(const Polygon &input, Visualizer *visualizer, MainWindow::Output output, PolyMath::WindingRule winding_rule) {
 		switch(output) {
-			case MainWindow::OUTPUT_SIMPLE:   Visualize2<PolyMath::OutputPolicy_Simple  <T>>(input, visualizer, winding_rule); break;
-			case MainWindow::OUTPUT_KEYHOLE:  Visualize2<PolyMath::OutputPolicy_Keyhole <T>>(input, visualizer, winding_rule); break;
-			case MainWindow::OUTPUT_MONOTONE: Visualize2<PolyMath::OutputPolicy_Monotone<T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_SIMPLE:    Visualize2<PolyMath::OutputPolicy_Simple   <T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_KEYHOLE:   Visualize2<PolyMath::OutputPolicy_Keyhole  <T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_MONOTONE:  Visualize2<PolyMath::OutputPolicy_Monotone <T>>(input, visualizer, winding_rule); break;
+			case MainWindow::OUTPUT_TRIANGLES: Visualize2<PolyMath::OutputPolicy_Triangles<T>>(input, visualizer, winding_rule); break;
 		}
 	}
 
@@ -77,9 +79,10 @@ struct Conversion {
 
 	static void EdgeCases(size_t num_tests, size_t num_probes, MainWindow::Output output, PolyMath::WindingRule winding_rule) {
 		switch(output) {
-			case MainWindow::OUTPUT_SIMPLE:   EdgeCases2<PolyMath::OutputPolicy_Simple  <T>>(num_tests, num_probes, winding_rule); break;
-			case MainWindow::OUTPUT_KEYHOLE:  EdgeCases2<PolyMath::OutputPolicy_Keyhole <T>>(num_tests, num_probes, winding_rule); break;
-			case MainWindow::OUTPUT_MONOTONE: EdgeCases2<PolyMath::OutputPolicy_Monotone<T>>(num_tests, num_probes, winding_rule); break;
+			case MainWindow::OUTPUT_SIMPLE:    EdgeCases2<PolyMath::OutputPolicy_Simple   <T>>(num_tests, num_probes, winding_rule); break;
+			case MainWindow::OUTPUT_KEYHOLE:   EdgeCases2<PolyMath::OutputPolicy_Keyhole  <T>>(num_tests, num_probes, winding_rule); break;
+			case MainWindow::OUTPUT_MONOTONE:  EdgeCases2<PolyMath::OutputPolicy_Monotone <T>>(num_tests, num_probes, winding_rule); break;
+			case MainWindow::OUTPUT_TRIANGLES: EdgeCases2<PolyMath::OutputPolicy_Triangles<T>>(num_tests, num_probes, winding_rule); break;
 		}
 	}
 
@@ -171,7 +174,7 @@ MainWindow::MainWindow() {
 		m_settings_type_combobox->addItems({"Int 8-bit", "Int 16-bit", "Int 32-bit", "Int 64-bit", "Float 32-bit", "Float 64-bit"});
 		m_settings_type_combobox->setCurrentIndex(TYPE_F32);
 		m_settings_output_combobox = new QComboBox(groupbox_settings);
-		m_settings_output_combobox->addItems({"Simple", "Keyhole", "Monotone"});
+		m_settings_output_combobox->addItems({"Simple", "Keyhole", "Monotone", "Triangles"});
 		m_settings_output_combobox->setCurrentIndex(OUTPUT_SIMPLE);
 		m_settings_winding_combobox = new QComboBox(groupbox_settings);
 		m_settings_winding_combobox->addItems({"NonZero", "EvenOdd", "Positive", "Negative"});
