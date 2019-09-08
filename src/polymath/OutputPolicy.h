@@ -438,18 +438,19 @@ public:
 				output_vertex2->m_next = edge2_vertex;
 
 				// trigger future cut
-				root1->m_output_vertex = output_vertex1;
 				edge_prev->m_cut_vertex = root1;
 				edge_next->m_cut_vertex = root1;
+				root1->m_output_vertex = output_vertex1;
 
 			} else {
 
 				// create new output vertex
 				OutputVertex *output_vertex = AddOutputVertex(vertex);
+				output_vertex->m_next = edge2_vertex;
 
 				// close loop
 				edge1_vertex->m_next = output_vertex;
-				output_vertex->m_next = edge2_vertex;
+				root1->m_output_vertex = output_vertex;
 
 			}
 		} else {
@@ -465,17 +466,21 @@ public:
 				OutputVertex *output_vertex2 = AddOutputVertex(vertex);
 				output_vertex1->m_next = edge1.m_output_vertex;
 				output_vertex2->m_next = edge1.m_cut_vertex->m_output_vertex->m_next;
+
+				// close loop
 				edge1.m_cut_vertex->m_output_vertex->m_next = output_vertex1;
 				edge2.m_output_vertex->m_next = output_vertex2;
+				root1->m_output_vertex = output_vertex1;
 
 			} else {
 
 				// create new output vertex
 				OutputVertex *output_vertex = AddOutputVertex(vertex);
+				output_vertex->m_next = edge1.m_output_vertex;
 
 				// close loop
 				edge2.m_output_vertex->m_next = output_vertex;
-				output_vertex->m_next = edge1.m_output_vertex;
+				root1->m_output_vertex = output_vertex;
 
 			}
 
@@ -510,19 +515,17 @@ public:
 		result.vertices.reserve(m_output_vertex_batches.size() * OUTPUT_VERTEX_BATCH_SIZE + m_output_vertex_batch_used - OUTPUT_VERTEX_BATCH_SIZE);
 
 		// fill polygon with output vertex data
-		for(size_t i = 0; i < m_output_vertex_batches.size(); ++i) {
-			OutputVertex *batch = m_output_vertex_batches[i].get();
-			size_t batch_size = (i == m_output_vertex_batches.size() - 1)? m_output_vertex_batch_used : OUTPUT_VERTEX_BATCH_SIZE;
+		for(size_t i = 0; i < m_start_vertex_batches.size(); ++i) {
+			StartVertex *batch = m_start_vertex_batches[i].get();
+			size_t batch_size = (i == m_start_vertex_batches.size() - 1)? m_start_vertex_batch_used : START_VERTEX_BATCH_SIZE;
 			for(size_t j = 0; j < batch_size; ++j) {
-				OutputVertex *v = &batch[j];
-				if(v->m_next != nullptr) {
-					OutputVertex *w = v;
-					while(w->m_next != nullptr) {
+				StartVertex *v = &batch[j];
+				if(v->m_parent == nullptr) {
+					OutputVertex *w = v->m_output_vertex;
+					do {
 						result.AddVertex(w->m_vertex);
-						OutputVertex *next = w->m_next;
-						w->m_next = nullptr;
-						w = next;
-					}
+						w = w->m_next;
+					} while(w != v->m_output_vertex);
 					result.AddLoopEnd(1);
 				}
 			}
