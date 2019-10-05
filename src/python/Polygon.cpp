@@ -13,7 +13,7 @@ PolyMath::Polygon<T> PolygonImport(const std::vector<std::pair<pybind11::array_t
 	for(auto &loop : loops) {
 		auto data = loop.first.template unchecked<2>();
 		if(data.shape(1) != 2)
-			throw std::runtime_error("Incorrect shape");
+			throw std::runtime_error("Incorrect array shape");
 		for(size_t i = 0; i < size_t(data.shape(0)); ++i) {
 			p.AddVertex(PolyMath::Vertex<T>(data(i, 0), data(i, 1)));
 		}
@@ -29,7 +29,7 @@ std::vector<std::pair<pybind11::array_t<T>, PolyMath::default_winding_t>> Polygo
 		const PolyMath::Vertex<T> *v = p.GetLoopVertices(i);
 		size_t n = p.GetLoopVertexCount(i);
 		pybind11::array_t<T> arr(std::array<size_t, 2>{n, 2});
-		auto data = arr.mutable_unchecked();
+		auto data = arr.template mutable_unchecked<2>();
 		for(size_t i = 0; i < size_t(data.shape(0)); ++i) {
 			data(i, 0) = v[i].x;
 			data(i, 1) = v[i].y;
@@ -66,6 +66,13 @@ void RegisterPolygon(pybind11::module &m, const char *name) {
 	});
 	m.def("make_keyhole", [](const Polygon &p, PolyMath::WindingRule winding_rule) {
 		typedef PolyMath::OutputPolicy_Keyhole<T> OutputPolicy;
+		typedef PolyMath::WindingPolicy_Dynamic<> WindingPolicy;
+		PolyMath::SweepEngine<T, OutputPolicy, WindingPolicy> engine(p, OutputPolicy(), WindingPolicy(winding_rule));
+		engine.Process();
+		return engine.Result();
+	});
+	m.def("make_triangles", [](const Polygon &p, PolyMath::WindingRule winding_rule) {
+		typedef PolyMath::OutputPolicy_Triangles<T> OutputPolicy;
 		typedef PolyMath::WindingPolicy_Dynamic<> WindingPolicy;
 		PolyMath::SweepEngine<T, OutputPolicy, WindingPolicy> engine(p, OutputPolicy(), WindingPolicy(winding_rule));
 		engine.Process();

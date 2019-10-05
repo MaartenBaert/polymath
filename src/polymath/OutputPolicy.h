@@ -1236,8 +1236,8 @@ public:
 						if(fronttop) {
 							for(size_t i = 0; i < front.size() - 1; ++i) {
 								result.AddVertex(p1);
-								result.AddVertex(front[i + 1]);
 								result.AddVertex(front[i]);
+								result.AddVertex(front[i + 1]);
 								result.AddLoopEnd(1);
 							}
 							VertexType temp = front.back();
@@ -1260,8 +1260,8 @@ public:
 						if(!fronttop) {
 							for(size_t i = 0; i < front.size() - 1; ++i) {
 								result.AddVertex(p2);
-								result.AddVertex(front[i]);
 								result.AddVertex(front[i + 1]);
+								result.AddVertex(front[i]);
 								result.AddLoopEnd(1);
 							}
 							VertexType temp = front.back();
@@ -1287,15 +1287,15 @@ public:
 				if(fronttop) {
 					for(size_t i = 0; i < front.size() - 1; ++i) {
 						result.AddVertex(p1);
-						result.AddVertex(front[i + 1]);
 						result.AddVertex(front[i]);
+						result.AddVertex(front[i + 1]);
 						result.AddLoopEnd(1);
 					}
 				} else {
 					for(size_t i = 0; i < front.size() - 1; ++i) {
 						result.AddVertex(p1);
-						result.AddVertex(front[i]);
 						result.AddVertex(front[i + 1]);
+						result.AddVertex(front[i]);
 						result.AddLoopEnd(1);
 					}
 				}
