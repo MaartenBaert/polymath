@@ -27,6 +27,8 @@ public:
 			case WINDINGRULE_POSITIVE: return (x > 0);
 			case WINDINGRULE_NEGATIVE: return (x < 0);
 		}
+		assert(false);
+		return false;
 	}
 };
 
