@@ -1,5 +1,10 @@
 set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
 
+if(POLYMATH_BUILD_DEMO)
+	find_package(OpenGL REQUIRED)
+	find_package(SDL2 REQUIRED)
+endif()
+
 if(POLYMATH_BUILD_PYTHON)
 	find_package(pybind11 REQUIRED)
 endif()
@@ -37,6 +42,10 @@ if(BENCHMARK_WITH_GEOS)
 		-lgeos
 	)
 endif()
+
+set(demo_sources
+	demo/Main.cpp
+)
 
 set(polymath_sources
 	polymath/Common.h
@@ -110,6 +119,21 @@ if(POLYMATH_BUILD_BENCHMARK)
 		-DBENCHMARK_WITH_BOOST=$<BOOL:${BENCHMARK_WITH_BOOST}>
 		-DBENCHMARK_WITH_CLIPPER=$<BOOL:${BENCHMARK_WITH_CLIPPER}>
 		-DBENCHMARK_WITH_GEOS=$<BOOL:${BENCHMARK_WITH_GEOS}>
+	)
+endif()
+
+if(POLYMATH_BUILD_DEMO)
+	add_executable(polymath-demo
+		${demo_sources}
+		${polymath_sources}
+		${widemath_sources}
+	)
+	target_link_libraries(polymath-demo PRIVATE
+		OpenGL::GL
+		SDL2::SDL2
+	)
+	target_compile_definitions(polymath-demo PRIVATE
+		${widemath_defines}
 	)
 endif()
 
