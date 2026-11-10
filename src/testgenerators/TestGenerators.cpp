@@ -7,7 +7,7 @@
 
 namespace TestGenerators {
 
-void DualGrid(uint64_t seed, DualGridType type, uint32_t size, double angle, bool holes, Polygon results[]) {
+void DoubleGrid(uint64_t seed, DoubleGridType type, uint32_t size, double angle, bool holes, Polygon results[]) {
 	assert(size != 0);
 
 	std::mt19937_64 rng(seed * SEED_MULT + SEED_ADD);
@@ -17,17 +17,17 @@ void DualGrid(uint64_t seed, DualGridType type, uint32_t size, double angle, boo
 	std::uniform_int_distribution<uint32_t> dist1;
 	std::uniform_real_distribution<double> dist2(0.25 * grid_step, 0.49 * grid_step);
 	switch(type) {
-		case DUALGRID_DEFAULT: {
+		case DOUBLEGRID_DEFAULT: {
 			dist1 = std::uniform_int_distribution<uint32_t>(3, 17);
 			dist2 = std::uniform_real_distribution<double>(0.25 * grid_step, 0.49 * grid_step);
 			break;
 		}
-		case DUALGRID_STARS: {
+		case DOUBLEGRID_STARS: {
 			dist1 = std::uniform_int_distribution<uint32_t>(50, 150);
 			dist2 = std::uniform_real_distribution<double>(0.10 * grid_step, 0.49 * grid_step);
 			break;
 		}
-		case DUALGRID_CIRCLES: {
+		case DOUBLEGRID_CIRCLES: {
 			dist1 = std::uniform_int_distribution<uint32_t>(50, 150);
 			dist2 = std::uniform_real_distribution<double>(0.39 * grid_step, 0.41 * grid_step);
 			break;

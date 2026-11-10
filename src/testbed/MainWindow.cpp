@@ -34,13 +34,18 @@ struct Conversion {
 
 		Polygon2 poly = TestGenerators::TypeConverter<T>::ConvertPolygonToType(input);
 
+		auto t1 = std::chrono::high_resolution_clock::now();
+
 		PolyMath::SweepEngine<T, OutputPolicy, PolyMath::WindingPolicy_Dynamic<>> engine(poly, OutputPolicy(), PolyMath::WindingPolicy_Dynamic<>(winding_rule));
 		engine.Process();
+		Polygon2 result = engine.Result();
+
+		auto t2 = std::chrono::high_resolution_clock::now();
 
 		std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
 		wrapper->SetPolygonInput(poly);
-		wrapper->SetPolygonOutput(engine.Result());
-		visualizer->SetWrapper(std::move(wrapper));
+		wrapper->SetPolygonOutput(result);
+		visualizer->SetWrapper(std::move(wrapper), std::chrono::duration<double>(t2 - t1).count());
 
 	}
 
@@ -63,7 +68,7 @@ struct Conversion {
 			std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
 			wrapper->SetPolygonInput(poly);
 			wrapper->SetVisualization(engine.Visualize());
-			visualizer->SetWrapper(std::move(wrapper));
+			visualizer->SetWrapper(std::move(wrapper), 0.0);
 			visualizer->update();
 			qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
 			std::this_thread::sleep_for(std::chrono::milliseconds(20));
@@ -73,7 +78,7 @@ struct Conversion {
 		std::unique_ptr<VisualizationWrapper<T>> wrapper(new VisualizationWrapper<T>());
 		wrapper->SetPolygonInput(poly);
 		wrapper->SetPolygonOutput(engine.Result());
-		visualizer->SetWrapper(std::move(wrapper));
+		visualizer->SetWrapper(std::move(wrapper), 0.0);
 
 	}
 
@@ -155,7 +160,7 @@ QStackedLayoutFixed::~QStackedLayoutFixed() {
 }
 
 Qt::Orientations QStackedLayoutFixed::expandingDirections() const {
-	return 0;
+	return Qt::Orientations();
 }
 
 MainWindow::MainWindow() {
@@ -197,35 +202,35 @@ MainWindow::MainWindow() {
 	QGroupBox *groupbox_test = new QGroupBox("Test", centralwidget);
 	{
 		m_test_combobox = new QComboBox(groupbox_test);
-		m_test_combobox->addItems({"Dual Grid", "Orthogonal", "Edge Cases", "Star"});
-		m_test_combobox->setCurrentIndex(TESTTYPE_DUALGRID);
+		m_test_combobox->addItems({"Double Grid", "Orthogonal", "Edge Cases", "Star"});
+		m_test_combobox->setCurrentIndex(TESTTYPE_DOUBLEGRID);
 
-		QWidget *page_dualgrid = new QWidget(groupbox_test);
+		QWidget *page_doublegrid = new QWidget(groupbox_test);
 		{
-			m_test_dualgrid_type_combobox = new QComboBox(page_dualgrid);
-			m_test_dualgrid_type_combobox->addItems({"Default", "Stars", "Circles"});
-			m_test_dualgrid_type_combobox->setCurrentIndex(TestGenerators::DUALGRID_DEFAULT);
-			m_test_dualgrid_size_spinbox = new QSpinBox(page_dualgrid);
-			m_test_dualgrid_size_spinbox->setRange(1, 100);
-			m_test_dualgrid_size_spinbox->setValue(3);
-			m_test_dualgrid_angle_spinbox = new QDoubleSpinBox(page_dualgrid);
-			m_test_dualgrid_angle_spinbox->setRange(0.0, 90.0);
-			m_test_dualgrid_angle_spinbox->setDecimals(1);
-			m_test_dualgrid_angle_spinbox->setSingleStep(0.1);
-			m_test_dualgrid_angle_spinbox->setValue(20.0);
-			m_test_dualgrid_holes_checkbox = new QCheckBox("Holes", page_dualgrid);
+			m_test_doublegrid_type_combobox = new QComboBox(page_doublegrid);
+			m_test_doublegrid_type_combobox->addItems({"Default", "Stars", "Circles"});
+			m_test_doublegrid_type_combobox->setCurrentIndex(TestGenerators::DOUBLEGRID_DEFAULT);
+			m_test_doublegrid_size_spinbox = new QSpinBox(page_doublegrid);
+			m_test_doublegrid_size_spinbox->setRange(1, 1000);
+			m_test_doublegrid_size_spinbox->setValue(3);
+			m_test_doublegrid_angle_spinbox = new QDoubleSpinBox(page_doublegrid);
+			m_test_doublegrid_angle_spinbox->setRange(0.0, 90.0);
+			m_test_doublegrid_angle_spinbox->setDecimals(1);
+			m_test_doublegrid_angle_spinbox->setSingleStep(0.1);
+			m_test_doublegrid_angle_spinbox->setValue(20.0);
+			m_test_doublegrid_holes_checkbox = new QCheckBox("Holes", page_doublegrid);
 
-			connect(m_test_dualgrid_type_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
-			connect(m_test_dualgrid_size_spinbox, SIGNAL(valueChanged(int)), this, SLOT(OnTestChanged()));
-			connect(m_test_dualgrid_angle_spinbox, SIGNAL(valueChanged(double)), this, SLOT(OnTestChanged()));
-			connect(m_test_dualgrid_holes_checkbox, SIGNAL(stateChanged(int)), this, SLOT(OnTestChanged()));
+			connect(m_test_doublegrid_type_combobox, SIGNAL(currentIndexChanged(int)), this, SLOT(OnTestChanged()));
+			connect(m_test_doublegrid_size_spinbox, SIGNAL(valueChanged(int)), this, SLOT(OnTestChanged()));
+			connect(m_test_doublegrid_angle_spinbox, SIGNAL(valueChanged(double)), this, SLOT(OnTestChanged()));
+			connect(m_test_doublegrid_holes_checkbox, SIGNAL(stateChanged(int)), this, SLOT(OnTestChanged()));
 
-			QFormLayout *layout = new QFormLayout(page_dualgrid);
+			QFormLayout *layout = new QFormLayout(page_doublegrid);
 			layout->setContentsMargins(0, 0, 0, 0);
-			layout->addRow("Type", m_test_dualgrid_type_combobox);
-			layout->addRow("Size", m_test_dualgrid_size_spinbox);
-			layout->addRow("Angle", m_test_dualgrid_angle_spinbox);
-			layout->addRow(m_test_dualgrid_holes_checkbox);
+			layout->addRow("Type", m_test_doublegrid_type_combobox);
+			layout->addRow("Size", m_test_doublegrid_size_spinbox);
+			layout->addRow("Angle", m_test_doublegrid_angle_spinbox);
+			layout->addRow(m_test_doublegrid_holes_checkbox);
 		}
 		QWidget *page_orthogonal = new QWidget(groupbox_test);
 		{
@@ -273,7 +278,7 @@ MainWindow::MainWindow() {
 			m_test_star_points_spinbox = new QSpinBox(page_star);
 			m_test_star_points_spinbox->setRange(1, 1000);
 			m_test_star_points_spinbox->setValue(10);
-			m_test_star_angle_spinbox = new QDoubleSpinBox(page_dualgrid);
+			m_test_star_angle_spinbox = new QDoubleSpinBox(page_doublegrid);
 			m_test_star_angle_spinbox->setRange(0.0, 90.0);
 			m_test_star_angle_spinbox->setDecimals(1);
 			m_test_star_angle_spinbox->setSingleStep(0.1);
@@ -295,11 +300,20 @@ MainWindow::MainWindow() {
 		{
 			m_test_stackedlayout = new QStackedLayoutFixed();
 			layout->addRow(m_test_stackedlayout);
-			m_test_stackedlayout->addWidget(page_dualgrid);
+			m_test_stackedlayout->addWidget(page_doublegrid);
 			m_test_stackedlayout->addWidget(page_orthogonal);
 			m_test_stackedlayout->addWidget(page_edgecases);
 			m_test_stackedlayout->addWidget(page_star);
 		}
+	}
+	QGroupBox *groupbox_display = new QGroupBox("Display", centralwidget);
+	{
+		m_display_fill_checkbox = new QCheckBox("Fill polygons (slow)");
+
+		connect(m_display_fill_checkbox, SIGNAL(stateChanged(int)), this, SLOT(OnDisplayChanged()));
+
+		QFormLayout *layout = new QFormLayout(groupbox_display);
+		layout->addRow(m_display_fill_checkbox);
 	}
 	QGroupBox *groupbox_actions = new QGroupBox("Actions", centralwidget);
 	{
@@ -321,6 +335,7 @@ MainWindow::MainWindow() {
 		layout->addLayout(layout2);
 		layout2->addWidget(groupbox_settings);
 		layout2->addWidget(groupbox_test);
+		layout2->addWidget(groupbox_display);
 		layout2->addWidget(groupbox_actions);
 		layout2->addStretch();
 	}
@@ -360,13 +375,13 @@ void MainWindow::OnTestChanged() {
 	m_test_stackedlayout->setCurrentIndex(testtype);
 
 	switch(testtype) {
-		case TESTTYPE_DUALGRID: {
-			TestGenerators::DualGridType dualgrid_type = TestGenerators::DualGridType(m_test_dualgrid_type_combobox->currentIndex());
-			uint32_t dualgrid_size = uint32_t(m_test_dualgrid_size_spinbox->value());
-			double dualgrid_angle = m_test_dualgrid_angle_spinbox->value();
-			bool dualgrid_holes = m_test_dualgrid_holes_checkbox->isChecked();
+		case TESTTYPE_DOUBLEGRID: {
+			TestGenerators::DoubleGridType doublegrid_type = TestGenerators::DoubleGridType(m_test_doublegrid_type_combobox->currentIndex());
+			uint32_t doublegrid_size = uint32_t(m_test_doublegrid_size_spinbox->value());
+			double doublegrid_angle = m_test_doublegrid_angle_spinbox->value();
+			bool doublegrid_holes = m_test_doublegrid_holes_checkbox->isChecked();
 			Polygon inputs[2];
-			TestGenerators::DualGrid(settings_seed, dualgrid_type, dualgrid_size, dualgrid_angle, dualgrid_holes, inputs);
+			TestGenerators::DoubleGrid(settings_seed, doublegrid_type, doublegrid_size, doublegrid_angle, doublegrid_holes, inputs);
 			m_polygon = inputs[0];
 			m_polygon += inputs[1];
 			break;
@@ -401,6 +416,10 @@ void MainWindow::OnTestChanged() {
 		case TYPE_F64: Conversion<double >::Process(m_polygon, m_visualizer, settings_output, settings_winding); break;
 	}
 
+}
+
+void MainWindow::OnDisplayChanged() {
+	m_visualizer->SetFill(m_display_fill_checkbox->isChecked());
 }
 
 void MainWindow::OnButtonVisualize() {

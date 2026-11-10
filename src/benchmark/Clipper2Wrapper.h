@@ -2,7 +2,7 @@
 
 #include "Wrappers.h"
 
-namespace ClipperWrapper {
+namespace Clipper2Wrapper {
 
 using namespace Wrappers;
 

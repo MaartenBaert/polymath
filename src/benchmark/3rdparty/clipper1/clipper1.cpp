@@ -38,7 +38,7 @@
 *                                                                              *
 *******************************************************************************/
 
-#include "clipper.hpp"
+#include "clipper1.hpp"
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -53,7 +53,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 #endif
 
-namespace ClipperLib {
+namespace Clipper1Lib {
 
 static long64 const loRange = 0x3FFFFFFF;
 static long64 const hiRange = 0x3FFFFFFFFFFFFFFFLL;

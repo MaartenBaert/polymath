@@ -1,4 +1,11 @@
-set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
+if(POLYMATH_BUILD_BENCHMARK)
+	if(BENCHMARK_WITH_BOOST)
+		find_package(Boost CONFIG REQUIRED)
+	endif()
+	if(BENCHMARK_WITH_GEOS)
+		find_package(GEOS 3.12 CONFIG REQUIRED)
+	endif()
+endif()
 
 if(POLYMATH_BUILD_DEMO)
 	find_package(OpenGL REQUIRED)
@@ -6,6 +13,7 @@ if(POLYMATH_BUILD_DEMO)
 endif()
 
 if(POLYMATH_BUILD_PYTHON)
+	set(PYBIND11_FINDPYTHON ON)
 	find_package(pybind11 REQUIRED)
 endif()
 
@@ -20,26 +28,41 @@ set(benchmark_sources
 	benchmark/Wrappers.h
 )
 if(BENCHMARK_WITH_BOOST)
-	list(append benchmark_sources
+	list(APPEND benchmark_sources
 		benchmark/BoostWrapper.cpp
 		benchmark/BoostWrapper.h
 	)
+	list(APPEND benchmark_libs
+		Boost::headers
+	)
 endif()
 if(BENCHMARK_WITH_CLIPPER)
-	list(append benchmark_sources
-		benchmark/3rdparty/clipper.cpp
-		benchmark/3rdparty/clipper.hpp
-		benchmark/ClipperWrapper.cpp
-		benchmark/ClipperWrapper.h
+	list(APPEND benchmark_sources
+		benchmark/3rdparty/clipper1/clipper1.cpp
+		benchmark/3rdparty/clipper1/clipper1.hpp
+		benchmark/3rdparty/clipper2/clipper2.h
+		benchmark/3rdparty/clipper2/clipper2.core.h
+		benchmark/3rdparty/clipper2/clipper2.engine.cpp
+		benchmark/3rdparty/clipper2/clipper2.engine.h
+		benchmark/3rdparty/clipper2/clipper2.export.h
+		benchmark/3rdparty/clipper2/clipper2.minkowski.h
+		benchmark/3rdparty/clipper2/clipper2.offset.cpp
+		benchmark/3rdparty/clipper2/clipper2.offset.h
+		benchmark/3rdparty/clipper2/clipper2.rectclip.cpp
+		benchmark/3rdparty/clipper2/clipper2.rectclip.h
+		benchmark/Clipper1Wrapper.cpp
+		benchmark/Clipper1Wrapper.h
+		benchmark/Clipper2Wrapper.cpp
+		benchmark/Clipper2Wrapper.h
 	)
 endif()
 if(BENCHMARK_WITH_GEOS)
-	list(append benchmark_sources
+	list(APPEND benchmark_sources
 		benchmark/GeosWrapper.cpp
 		benchmark/GeosWrapper.h
 	)
-	list(append benchmark_libs
-		-lgeos
+	list(APPEND benchmark_libs
+		GEOS::geos
 	)
 endif()
 
@@ -100,80 +123,88 @@ set(widemath_sources
 	widemath/WideMath.h
 )
 
-set(widemath_defines
-	-DWIDEMATH_USE_ASM=$<BOOL:${WIDEMATH_ENABLE_ASM}>
+# Header-only library target. Users include "polymath/PolyMath.h". The header lists above are only used for reference.
+add_library(polymath-headers INTERFACE)
+add_library(PolyMath::PolyMath ALIAS polymath-headers)
+target_include_directories(polymath-headers INTERFACE
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
+target_compile_features(polymath-headers INTERFACE
+	cxx_std_17
+)
+target_compile_definitions(polymath-headers INTERFACE
+	WIDEMATH_USE_ASM=$<BOOL:${WIDEMATH_ENABLE_ASM}>
+)
+
+# Internal library for test polygon generators, shared by several executables.
+if(POLYMATH_BUILD_BENCHMARK OR POLYMATH_BUILD_TESTBED OR POLYMATH_BUILD_UNITTESTS)
+	add_library(polymath-testgenerators STATIC
+		${testgenerators_sources}
+	)
+	target_link_libraries(polymath-testgenerators PUBLIC
+		PolyMath::PolyMath
+	)
+endif()
 
 if(POLYMATH_BUILD_BENCHMARK)
 	add_executable(polymath-benchmark
 		${benchmark_sources}
-		${polymath_sources}
-		${testgenerators_sources}
-		${widemath_sources}
 	)
 	target_link_libraries(polymath-benchmark PRIVATE
+		PolyMath::PolyMath
+		polymath-testgenerators
 		${benchmark_libs}
 	)
 	target_compile_definitions(polymath-benchmark PRIVATE
-		${widemath_defines}
-		-DBENCHMARK_WITH_BOOST=$<BOOL:${BENCHMARK_WITH_BOOST}>
-		-DBENCHMARK_WITH_CLIPPER=$<BOOL:${BENCHMARK_WITH_CLIPPER}>
-		-DBENCHMARK_WITH_GEOS=$<BOOL:${BENCHMARK_WITH_GEOS}>
+		BENCHMARK_WITH_BOOST=$<BOOL:${BENCHMARK_WITH_BOOST}>
+		BENCHMARK_WITH_CLIPPER=$<BOOL:${BENCHMARK_WITH_CLIPPER}>
+		BENCHMARK_WITH_GEOS=$<BOOL:${BENCHMARK_WITH_GEOS}>
 	)
 endif()
 
 if(POLYMATH_BUILD_DEMO)
 	add_executable(polymath-demo
 		${demo_sources}
-		${polymath_sources}
-		${widemath_sources}
 	)
 	target_link_libraries(polymath-demo PRIVATE
+		PolyMath::PolyMath
 		OpenGL::GL
 		SDL2::SDL2
-	)
-	target_compile_definitions(polymath-demo PRIVATE
-		${widemath_defines}
 	)
 endif()
 
 if(POLYMATH_BUILD_PYTHON)
 	pybind11_add_module(polymath
-		${polymath_sources}
 		${python_sources}
+	)
+	target_link_libraries(polymath PRIVATE
+		PolyMath::PolyMath
 	)
 endif()
 
 if(POLYMATH_BUILD_TESTBED)
-	qt5_wrap_cpp(testbed_moc
-		testbed/MainWindow.h
-		testbed/Visualizer.h
-	)
 	add_executable(polymath-testbed
-		${polymath_sources}
 		${testbed_sources}
-		${testbed_moc}
-		${testgenerators_sources}
-		${widemath_sources}
+	)
+	set_target_properties(polymath-testbed PROPERTIES
+		AUTOMOC ON
 	)
 	target_link_libraries(polymath-testbed PRIVATE
+		PolyMath::PolyMath
+		polymath-testgenerators
 		Qt5::Core
 		Qt5::Gui
 		Qt5::Widgets
-	)
-	target_compile_definitions(polymath-testbed PRIVATE
-		${widemath_defines}
 	)
 endif()
 
 if(POLYMATH_BUILD_UNITTESTS)
 	add_executable(polymath-unittests
-		${polymath_sources}
-		${testgenerators_sources}
 		${unittests_sources}
-		${widemath_sources}
 	)
-	target_compile_definitions(polymath-unittests PRIVATE
-		${widemath_defines}
+	target_link_libraries(polymath-unittests PRIVATE
+		PolyMath::PolyMath
+		polymath-testgenerators
 	)
+	add_test(NAME polymath-unittests COMMAND polymath-unittests)
 endif()

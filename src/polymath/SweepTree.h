@@ -121,9 +121,9 @@ private:
 				TreeRotateRight(a);
 				node = a;
 			}
-			//  ,---g---,     =>     ,---a---,
-			//  x     ,-A-,   =>   ,-G-,   ,-C-,
-			//        b  ,C,  =>   x   b   x   x
+			//  ,---g---,     =>    ,---a---,
+			//  x     ,-A-,   =>  ,-G-,   ,-C-,
+			//        b  ,C,  =>  x   b   x   x
 			//           x x  =>
 			SweepEdge *a = node->m_tree_parent;
 			TreeRotateLeft(grandparent);

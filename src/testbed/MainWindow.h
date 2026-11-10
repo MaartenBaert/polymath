@@ -38,7 +38,7 @@ public:
 		OUTPUT_TRIANGLES,
 	};
 	enum TestType {
-		TESTTYPE_DUALGRID,
+		TESTTYPE_DOUBLEGRID,
 		TESTTYPE_ORTHOGONAL,
 		TESTTYPE_EDGECASES,
 		TESTTYPE_STAR,
@@ -63,11 +63,11 @@ private:
 	QComboBox *m_test_combobox;
 	QStackedLayoutFixed *m_test_stackedlayout;
 
-	// test: dual grid
-	QComboBox *m_test_dualgrid_type_combobox;
-	QSpinBox *m_test_dualgrid_size_spinbox;
-	QDoubleSpinBox *m_test_dualgrid_angle_spinbox;
-	QCheckBox *m_test_dualgrid_holes_checkbox;
+	// test: double grid
+	QComboBox *m_test_doublegrid_type_combobox;
+	QSpinBox *m_test_doublegrid_size_spinbox;
+	QDoubleSpinBox *m_test_doublegrid_angle_spinbox;
+	QCheckBox *m_test_doublegrid_holes_checkbox;
 
 	// test: orthogonal
 	QSpinBox *m_test_orthogonal_lines_spinbox;
@@ -82,6 +82,9 @@ private:
 	QSpinBox *m_test_star_points_spinbox;
 	QDoubleSpinBox *m_test_star_angle_spinbox;
 
+	// display
+	QCheckBox *m_display_fill_checkbox;
+
 	Visualizer *m_visualizer;
 
 public:
@@ -93,6 +96,7 @@ private:
 
 public slots:
 	void OnTestChanged();
+	void OnDisplayChanged();
 	void OnButtonVisualize();
 	void OnButtonEdgeCases();
 

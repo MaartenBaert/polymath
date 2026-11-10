@@ -12,6 +12,8 @@ VisualizationWrapperBase::~VisualizationWrapperBase() {
 Visualizer::Visualizer(QWidget *parent)
 	: QWidget(parent) {
 
+	m_processing_time = 0.0;
+	m_fill = false;
 	//m_decimation_counter = 0;
 
 	m_zoom_active = false;
@@ -30,8 +32,14 @@ QSize Visualizer::sizeHint() const {
 	return QSize(600, 600);
 }
 
-void Visualizer::SetWrapper(std::unique_ptr<VisualizationWrapperBase> &&wrapper) {
+void Visualizer::SetWrapper(std::unique_ptr<VisualizationWrapperBase> &&wrapper, double processing_time) {
 	m_wrapper = std::move(wrapper);
+	m_processing_time = processing_time;
+	update();
+}
+
+void Visualizer::SetFill(bool fill) {
+	m_fill = fill;
 	update();
 }
 
@@ -76,12 +84,15 @@ void Visualizer::paintEvent(QPaintEvent *event) {
 		painter.translate(-scale * m_zoom_x, -scale * m_zoom_y);
 	}
 	if(m_wrapper != nullptr) {
-		m_wrapper->Paint(painter, scale);
+		m_wrapper->Paint(painter, scale, m_fill);
 	}
 
 	painter.resetTransform();
 	painter.setFont(font());
 	painter.setPen(QColor(192, 192, 192));
+	if(m_wrapper != nullptr && m_processing_time > 0.0) {
+		painter.drawText(5, 5, width() - 10, height() - 10, Qt::AlignLeft | Qt::AlignTop, QString("Processing time: %1 sec").arg(m_processing_time, 0, 'f', 6));
+	}
 	painter.drawText(5, 5, width() - 10, height() - 10, Qt::AlignLeft | Qt::AlignBottom, "Left-click to zoom in\nRight-click to reset view");
 
 }

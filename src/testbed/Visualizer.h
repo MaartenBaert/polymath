@@ -10,7 +10,7 @@
 class VisualizationWrapperBase {
 public:
 	virtual ~VisualizationWrapperBase();
-	virtual void Paint(QPainter &painter, double scale) = 0;
+	virtual void Paint(QPainter &painter, double scale, bool fill) = 0;
 };
 
 template<typename T>
@@ -65,21 +65,21 @@ public:
 		return multipoly;
 	}
 
-	virtual void Paint(QPainter &painter, double scale) override {
+	virtual void Paint(QPainter &painter, double scale, bool fill) override {
 
 		double mult = scale / TestGenerators::TypeConverter<T>::ScaleFactor();
 
 		// draw input polygon
 		{
 			painter.setPen(QPen(QColor(128, 0, 0), 0));
-			painter.setBrush(QBrush(QColor(128, 0, 0, 64)));
+			painter.setBrush((fill)? QBrush(QColor(128, 0, 0, 64)) : Qt::NoBrush);
 			painter.drawPath(ConvertPolygon(m_polygon_input, mult));
 		}
 
 		// draw output polygon
 		{
 			painter.setPen(QPen(QColor(255, 255, 0), 0));
-			painter.setBrush(QBrush(QColor(128, 128, 0, 64)));
+			painter.setBrush((fill)? QBrush(QColor(128, 128, 0, 64)) : Qt::NoBrush);
 			painter.drawPath(ConvertPolygon(m_polygon_output, mult));
 		}
 
@@ -177,6 +177,7 @@ public:
 
 		// draw output edges
 		painter.setPen(QPen(QColor(255, 255, 0), 0));
+		painter.setBrush(Qt::NoBrush);
 		for(typename Visualization::OutputEdge &edge : m_visualization.m_output_edges) {
 			Vertex &a = edge.m_edge_vertices[0], &b = edge.m_edge_vertices[1];
 			painter.drawLine(QPointF(double(a.x) * mult, double(a.y) * mult), QPointF(double(b.x) * mult, double(b.y) * mult));
@@ -184,6 +185,7 @@ public:
 
 		// draw output cuts
 		painter.setPen(QPen(QColor(255, 160, 0), 0));
+		painter.setBrush(Qt::NoBrush);
 		for(typename Visualization::OutputCut &cut : m_visualization.m_output_cuts) {
 			Vertex &a = cut.m_cut_vertices[0], &b = cut.m_cut_vertices[1];
 			painter.drawLine(QPointF(double(a.x) * mult, double(a.y) * mult), QPointF(double(b.x) * mult, double(b.y) * mult));
@@ -204,6 +206,8 @@ public:
 
 private:
 	std::unique_ptr<VisualizationWrapperBase> m_wrapper;
+	double m_processing_time;
+	bool m_fill;
 	//uint32_t m_decimation_counter;
 
 	bool m_zoom_active;
@@ -215,7 +219,8 @@ public:
 
 	virtual QSize sizeHint() const override;
 
-	void SetWrapper(std::unique_ptr<VisualizationWrapperBase> &&wrapper);
+	void SetWrapper(std::unique_ptr<VisualizationWrapperBase> &&wrapper, double processing_time);
+	void SetFill(bool fill);
 
 private:
 	void UpdateZoom(int x, int y);

@@ -40,7 +40,7 @@
 #include <cstdlib>
 #include <ostream>
 
-namespace ClipperLib {
+namespace Clipper1Lib {
 
 enum ClipType { ctIntersection, ctUnion, ctDifference, ctXor };
 enum PolyType { ptSubject, ptClip };

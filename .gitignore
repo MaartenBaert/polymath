@@ -8,6 +8,7 @@
 *.orig
 *.autosave
 *.qm
+.cache/
 qrc_*
 moc_*
 Makefile
@@ -24,3 +25,7 @@ stamp-h1
 build-*
 
 private-*
+
+*.user.*
+compile_commands.json
+build/
