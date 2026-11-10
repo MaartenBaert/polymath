@@ -29,6 +29,11 @@ The integer engine internally uses integers that are up to four times larger tha
 
 The floating point engine internally uses floating point number that are twice as large as the base type. For example, 64-bit float (double precision) vertices require 128-bit float (quadruple precision) internal calculations. Not all compilers support 128-bit floats, and even when it is supported by the compiler it is almost always extremely slow due to the lack of hardware support. For this reason it is recommended to use only 32-bit floats as the base type.
 
+Documentation
+-------------
+
+See [doc/design-notes.md](doc/design-notes.md) for a description of the algorithm, the data structures, conventions and known issues.
+
 License
 -------
 
