@@ -131,24 +131,35 @@ Polygon EdgeCases(uint64_t seed, uint32_t num_lines, uint32_t num_polygons, doub
 	std::normal_distribution<double> dist_eps(0.0, eps);
 	std::uniform_int_distribution<uint32_t> dist_line(0, num_lines - 1);
 
+	// Note: the order in which function arguments are evaluated is unspecified, so random numbers are always generated
+	// in separate statements. Otherwise the generated polygons would depend on the compiler.
 	auto RandomLine = [&]() {
 		Line line;
 		switch(rng() & 3) {
 			case 0: {
 				double x = dist_coord(rng);
-				line.m_v1 = Vertex(x + dist_eps(rng), dist_coord(rng));
-				line.m_v2 = Vertex(x + dist_eps(rng), dist_coord(rng));
+				for(Vertex *v : {&line.m_v1, &line.m_v2}) {
+					double eps = dist_eps(rng);
+					double y = dist_coord(rng);
+					*v = Vertex(x + eps, y);
+				}
 				break;
 			}
 			case 1: {
 				double y = dist_coord(rng);
-				line.m_v1 = Vertex(dist_coord(rng), y + dist_eps(rng));
-				line.m_v2 = Vertex(dist_coord(rng), y + dist_eps(rng));
+				for(Vertex *v : {&line.m_v1, &line.m_v2}) {
+					double x = dist_coord(rng);
+					double eps = dist_eps(rng);
+					*v = Vertex(x, y + eps);
+				}
 				break;
 			}
 			default: {
-				line.m_v1 = Vertex(dist_coord(rng), dist_coord(rng));
-				line.m_v2 = Vertex(dist_coord(rng), dist_coord(rng));
+				for(Vertex *v : {&line.m_v1, &line.m_v2}) {
+					double x = dist_coord(rng);
+					double y = dist_coord(rng);
+					*v = Vertex(x, y);
+				}
 				break;
 			}
 		}
@@ -171,9 +182,11 @@ Polygon EdgeCases(uint64_t seed, uint32_t num_lines, uint32_t num_polygons, doub
 			uint32_t flip = rng() & 1;
 			for(uint32_t k = 0; k < 2; ++k) {
 				double t = (double(k ^ flip) + dist_t(rng)) / 2.0;
+				double eps_x = dist_eps(rng);
+				double eps_y = dist_eps(rng);
 				result.AddVertex(Vertex(
-					line.m_v1.x + (line.m_v2.x - line.m_v1.x) * t + dist_eps(rng),
-					line.m_v1.y + (line.m_v2.y - line.m_v1.y) * t + dist_eps(rng)
+					line.m_v1.x + (line.m_v2.x - line.m_v1.x) * t + eps_x,
+					line.m_v1.y + (line.m_v2.y - line.m_v1.y) * t + eps_y
 				));
 			}
 		}

@@ -5,7 +5,9 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
+#ifndef USE_UNSTABLE_GEOS_CPP_API
 #define USE_UNSTABLE_GEOS_CPP_API
+#endif
 #include <geos/geom/Coordinate.h>
 #include <geos/geom/CoordinateSequence.h>
 #include <geos/geom/Geometry.h>

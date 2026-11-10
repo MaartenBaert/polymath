@@ -12,7 +12,10 @@
 #include <limits>
 #include <memory>
 
+// Enables expensive internal consistency checks (for debugging).
+#ifndef POLYMATH_VERIFY
 #define POLYMATH_VERIFY 0
+#endif
 
 #if POLYMATH_VERIFY
 #include <iostream>
@@ -300,10 +303,19 @@ private:
 
 		// replace with end of heap and remove end
 		size_t current = edge->m_heap_index;
+		edge->m_heap_index = INDEX_NONE;
+		if(current == m_heap.size() - 1) {
+			// The edge is already at the end of the heap, so it can just be removed. This case has to be handled
+			// separately, otherwise the code below would access the element past the end of the heap.
+			m_heap.pop_back();
+#if POLYMATH_VERIFY
+			HeapVerify();
+#endif
+			return;
+		}
 		m_heap[current] = m_heap.back();
 		m_heap[current]->m_heap_index = current;
 		m_heap.pop_back();
-		edge->m_heap_index = INDEX_NONE;
 
 		// sift up
 		size_t start = current;
@@ -356,24 +368,24 @@ private:
 
 	void WindingNumberPrint() {
 		std::cout << "<" << 0 << ">" << std::endl;
-		for(SweepEdge *edge = TreeFirst(); edge != nullptr; edge = TreeNext(edge)) {
-			std::cout << ((edge->m_output_vertex == nullptr)? " " : "-") << " [" << edge->m_winding_weight << "] " << edge->m_vertex_first << " " << edge->m_vertex_last << std::endl;
+		for(SweepEdge *edge = m_tree.TreeFirst(); edge != nullptr; edge = m_tree.TreeNext(edge)) {
+			std::cout << ((m_output_policy.HasOutputEdge(edge->m_output_edge))? "-" : " ") << " [" << edge->m_winding_weight << "] "
+				<< edge->m_vertex_first << " " << edge->m_vertex_last << std::endl;
 			std::cout << "<" << edge->m_winding_number << ">" << std::endl;
 		}
 		std::cout << std::endl;
 	}
 
+	// Verifies that the winding numbers are consistent with the winding weights, and that exactly those edges that
+	// separate an inside region from an outside region have an output edge.
 	void WindingNumberVerify() {
 		WindingNumberType winding_number = 0;
-		bool w1 = WindingPolicy::Evaluate(winding_number);
-		for(SweepEdge *edge = TreeFirst(); edge != nullptr; edge = TreeNext(edge)) {
+		bool w1 = m_winding_policy.Evaluate(winding_number);
+		for(SweepEdge *edge = m_tree.TreeFirst(); edge != nullptr; edge = m_tree.TreeNext(edge)) {
 			winding_number += edge->m_winding_weight;
 			assert(edge->m_winding_number == winding_number);
-			bool w2 = WindingPolicy::Evaluate(winding_number);
-			if(w1 != w2) {
-				assert(edge->m_output_vertex != nullptr);
-				assert(edge->m_output_vertex_forward == w1);
-			}
+			bool w2 = m_winding_policy.Evaluate(winding_number);
+			assert((w1 != w2) == m_output_policy.HasOutputEdge(edge->m_output_edge));
 			w1 = w2;
 		}
 	}
