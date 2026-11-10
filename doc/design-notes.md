@@ -32,7 +32,7 @@ Boolean operations are expressed through weights and rules. Examples:
 
 **Handedness doesn't matter.** PolyMath never assumes which way the axes point. With the Y axis pointing **down**, a loop that is **clockwise** with weight +1 adds +1 to the winding number inside it. With the Y axis pointing **up**, the same loop appears **counter-clockwise**, and everything works the same. Reversing a loop's orientation has the same effect as negating its weight. Applications can therefore use whichever convention they like, as long as they are consistent.
 
-**Known issue: output orientation is inverted.** Output loops all have weight +1, but outer loops come out with the orientation of a *negative* input loop, and holes with the orientation of a positive one. As a result, feeding a result back into the engine with the same rule (e.g. *positive*) produces an empty result. The opposite rule (*negative*) or negated weights are needed. For example: a square with weight +1 (counter-clockwise, Y up) minus a smaller square (same orientation, weight −1), rule *positive*, gives a clockwise outer loop and a counter-clockwise hole (Y up), both with weight +1. This should be made consistent, so that the output of one operation can be used directly as input for the next.
+**Output orientation.** All output policies use the same convention as the input. Output loops have weight +1, outer loops have the positive orientation and holes the opposite one, and triangles all have the positive orientation. This means the output of one operation can be used directly as input for the next one with the same winding rule. This is verified by the unit tests (see [Testing](#testing)).
 
 ## The sweep algorithm
 
@@ -89,14 +89,25 @@ The numerical engine (`NumericalEngine<T>`) provides the orientation test and th
 
 The **integer engine** is more predictable than the floating point engine: its rounding errors are deterministic and don't depend on hardware or compiler options. It is not necessarily more accurate. The **floating point engine** is the most convenient for graphics, but results may differ slightly between platforms.
 
+## Testing
+
+The unit tests (`polymath-unittests`, also registered with `ctest`) contain three kinds of tests for the sweep engine and output policies:
+
+- **Golden tests** (`TestGolden.cpp`): the output of every output policy, for every winding rule, with the `int32_t` and `int64_t` engines, is compared with hashes of known-good output for a fixed set of generated inputs. The hashes use a canonical form of the output, so they don't depend on the start vertex of each loop or the order of the loops, only on the geometry and the orientation. Floating point engines are not included because their results may differ between platforms. If the output changes intentionally, the golden data can be regenerated with `polymath-unittests "Generate golden data"` (see the comment in `TestGolden.cpp`).
+- **Winding number probes** (`TestOutput.cpp`): random points that are not close to any edge are tested against the input and the output. The winding number of the output must be exactly 1 where the input is inside according to the winding rule, and 0 elsewhere. This checks correctness and orientation of all output policies with all winding rules and engines (including `float`), independently of the golden data.
+- **Chaining tests** (`TestOutput.cpp`): the output of each policy is fed back into the engine with the same winding rule, which must produce the same area.
+
+The test inputs come from the test generators, which must produce the same polygons on every platform. Random numbers must therefore never be generated in function arguments, since the evaluation order of function arguments is unspecified (GCC and Clang use different orders).
+
+**Internal consistency checks** can be enabled by defining `POLYMATH_VERIFY=1`, e.g. with `-DCMAKE_CXX_FLAGS=-DPOLYMATH_VERIFY=1`. This verifies the heap and the winding numbers after every step, and checks that exactly those edges that separate inside from outside have an output edge. It is very slow, but useful when changing the sweep engine or the output policies.
+
 ## Future work
 
 Planned features, mostly driven by AlterPCB:
 
-- **Consistent output orientation** (see [Polygons, orientation and winding numbers](#polygons-orientation-and-winding-numbers)), so results can be chained without flipping weights or rules.
 - **Snap rounding**, so that the output is guaranteed to be free of self-intersections after rounding to the coordinate type, and consecutive boolean operations behave sensibly. It still needs to be worked out how to integrate this into the sweep engine.
 - **Simplification of degenerate output**: shapes that touch exactly or within a rounding tolerance, zero-area slivers and spikes. Probably a post-processing step after the sweep engine has deduplicated output vertices (but not output edges). It could be combined with snap rounding.
 - **Minkowski sum with a convex polygon**, as the basis for both stroking (paths with a pen shape) and offsetting. An algorithm with acceptable worst-case complexity is still needed. For PCB use, circles are approximated with circumscribed polygons (the tangent rule), with the number of vertices a multiple of 8.
 - **Connectivity graph generation**: which output polygons touch or overlap.
+- `PolygonPointEdgeDistance` calculates squared distances in the coordinate type, which overflows for integer coordinates that use a significant part of the range. It should use the wider numerical engine types.
 - An **intersection winding policy** (winding number ≥ 2) and other combined rules.
-- Better **documentation of the handedness convention** in the API.

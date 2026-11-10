@@ -105,7 +105,11 @@ set(testgenerators_sources
 
 set(unittests_sources
 	unittests/3rdparty/catch.hpp
+	unittests/GoldenData.inc
 	unittests/Main.cpp
+	unittests/TestCommon.h
+	unittests/TestGolden.cpp
+	unittests/TestOutput.cpp
 	unittests/TestWideMath.cpp
 )
 

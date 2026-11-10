@@ -7,6 +7,7 @@
 #include "Vertex.h"
 #include "Visualization.h"
 
+#include <algorithm>
 #include <memory>
 
 namespace PolyMath {
@@ -95,13 +96,14 @@ public:
 		// create new output vertex
 		OutputVertex *output_vertex = AddOutputVertex(vertex);
 
-		// update edges
+		// Update edges. Output loops are linked such that following the 'next' pointers results in the positive
+		// orientation. On the left side of the inside region the chain grows at its tail, on the right side at its head.
 		if(is_left) {
-			output_vertex->m_next = edge.m_output_vertex;
-			edge.m_output_vertex = output_vertex;
-		} else {
 			output_vertex->m_next = nullptr;
 			edge.m_output_vertex->m_next = output_vertex;
+			edge.m_output_vertex = output_vertex;
+		} else {
+			output_vertex->m_next = edge.m_output_vertex;
 			edge.m_output_vertex = output_vertex;
 		}
 
@@ -118,11 +120,11 @@ public:
 
 		// update edges
 		if(is_merge) {
-			edge1.m_output_vertex->m_next = output_vertex;
-			output_vertex->m_next = edge2.m_output_vertex;
-		} else {
 			edge2.m_output_vertex->m_next = output_vertex;
 			output_vertex->m_next = edge1.m_output_vertex;
+		} else {
+			edge1.m_output_vertex->m_next = output_vertex;
+			output_vertex->m_next = edge2.m_output_vertex;
 		}
 
 	}
@@ -279,23 +281,22 @@ public:
 
 	void OutputStartVertex(OutputEdge &edge1, OutputEdge &edge2, VertexType vertex, bool is_split, OutputEdge *edge_prev, OutputEdge *edge_next) {
 
-		if(is_split && edge_prev->m_cut_vertex != nullptr && edge_prev->m_cut_vertex->m_parent == nullptr) {
-			assert(edge_prev != nullptr);
-			assert(edge_next != nullptr);
-			assert(edge_prev->m_cut_vertex->m_reference_count == 0);
+		assert(!is_split || (edge_prev != nullptr && edge_next != nullptr));
+		if(is_split && edge_next->m_cut_vertex != nullptr && edge_next->m_cut_vertex->m_parent == nullptr) {
+			assert(edge_next->m_cut_vertex->m_reference_count == 0);
 
 			// reuse existing start vertex
-			StartVertex *start_vertex = edge_prev->m_cut_vertex;
+			StartVertex *start_vertex = edge_next->m_cut_vertex;
 			start_vertex->m_reference_count = 1;
 			edge_prev->m_cut_vertex = nullptr;
 			edge_next->m_cut_vertex = nullptr;
 
-			// create two output vertices
+			// create two output vertices and insert them into the existing loop (this creates the cut)
 			OutputVertex *output_vertex1 = AddOutputVertex(vertex);
 			OutputVertex *output_vertex2 = AddOutputVertex(vertex);
-			output_vertex1->m_next = nullptr;
-			output_vertex2->m_next = start_vertex->m_output_vertex->m_next;
-			start_vertex->m_output_vertex->m_next = output_vertex1;
+			output_vertex1->m_next = start_vertex->m_output_vertex->m_next;
+			output_vertex2->m_next = nullptr;
+			start_vertex->m_output_vertex->m_next = output_vertex2;
 
 			// update edges
 			edge1.m_output_vertex = output_vertex1;
@@ -343,12 +344,12 @@ public:
 
 			// update edges
 			if(is_left) {
-				output_vertex1->m_next = edge.m_output_vertex;
-				edge.m_output_vertex = output_vertex2;
-			} else {
 				output_vertex1->m_next = nullptr;
 				edge.m_output_vertex->m_next = output_vertex2;
 				edge.m_output_vertex = output_vertex1;
+			} else {
+				output_vertex1->m_next = edge.m_output_vertex;
+				edge.m_output_vertex = output_vertex2;
 			}
 
 		} else {
@@ -358,11 +359,11 @@ public:
 
 			// update edges
 			if(is_left) {
-				output_vertex->m_next = edge.m_output_vertex;
-				edge.m_output_vertex = output_vertex;
-			} else {
 				output_vertex->m_next = nullptr;
 				edge.m_output_vertex->m_next = output_vertex;
+				edge.m_output_vertex = output_vertex;
+			} else {
+				output_vertex->m_next = edge.m_output_vertex;
 				edge.m_output_vertex = output_vertex;
 			}
 
@@ -391,19 +392,22 @@ public:
 
 		if(is_merge) {
 
+			// The new vertex will be inserted between the chain of edge 2 (which links to it) and the chain of edge 1
+			// (which it links to). If there is a pending cut, the cut is made first.
+
 			OutputVertex *edge1_vertex;
 			if(edge1.m_cut_vertex != nullptr && edge1.m_cut_vertex->m_parent == nullptr) {
 				assert(edge1.m_cut_vertex->m_reference_count == 0);
 
-				edge1_vertex = edge1.m_cut_vertex->m_output_vertex;
+				edge1_vertex = edge1.m_cut_vertex->m_output_vertex->m_next;
 
 				// join roots
 				edge1.m_cut_vertex->m_parent = root1;
 
 				// create new output vertex
 				OutputVertex *output_vertex = AddOutputVertex(vertex);
-				output_vertex->m_next = edge1.m_cut_vertex->m_output_vertex->m_next;
-				edge1.m_output_vertex->m_next = output_vertex;
+				output_vertex->m_next = edge1.m_output_vertex;
+				edge1.m_cut_vertex->m_output_vertex->m_next = output_vertex;
 
 			} else {
 				edge1_vertex = edge1.m_output_vertex;
@@ -413,15 +417,15 @@ public:
 			if(edge2.m_cut_vertex != nullptr && edge2.m_cut_vertex->m_parent == nullptr) {
 				assert(edge2.m_cut_vertex->m_reference_count == 0);
 
-				edge2_vertex = edge2.m_cut_vertex->m_output_vertex->m_next;
+				edge2_vertex = edge2.m_cut_vertex->m_output_vertex;
 
 				// join roots
 				edge2.m_cut_vertex->m_parent = root1;
 
 				// create new output vertex
 				OutputVertex *output_vertex = AddOutputVertex(vertex);
-				output_vertex->m_next = edge2.m_output_vertex;
-				edge2.m_cut_vertex->m_output_vertex->m_next = output_vertex;
+				output_vertex->m_next = edge2.m_cut_vertex->m_output_vertex->m_next;
+				edge2.m_output_vertex->m_next = output_vertex;
 
 			} else {
 				edge2_vertex = edge2.m_output_vertex;
@@ -434,11 +438,11 @@ public:
 				// create two new output vertices
 				OutputVertex *output_vertex1 = AddOutputVertex(vertex);
 				OutputVertex *output_vertex2 = AddOutputVertex(vertex);
-				edge1_vertex->m_next = output_vertex1;
+				edge2_vertex->m_next = output_vertex1;
 				output_vertex1->m_next = output_vertex2;
-				output_vertex2->m_next = edge2_vertex;
+				output_vertex2->m_next = edge1_vertex;
 
-				// trigger future cut
+				// Trigger a future cut. The cut will be inserted after 'root1->m_output_vertex'.
 				edge_prev->m_cut_vertex = root1;
 				edge_next->m_cut_vertex = root1;
 				root1->m_output_vertex = output_vertex1;
@@ -447,40 +451,40 @@ public:
 
 				// create new output vertex
 				OutputVertex *output_vertex = AddOutputVertex(vertex);
-				output_vertex->m_next = edge2_vertex;
+				output_vertex->m_next = edge1_vertex;
 
 				// close loop
-				edge1_vertex->m_next = output_vertex;
+				edge2_vertex->m_next = output_vertex;
 				root1->m_output_vertex = output_vertex;
 
 			}
 		} else {
 
-			if(edge1.m_cut_vertex != nullptr && edge1.m_cut_vertex->m_parent == nullptr) {
-				assert(edge1.m_cut_vertex->m_reference_count == 0);
+			if(edge2.m_cut_vertex != nullptr && edge2.m_cut_vertex->m_parent == nullptr) {
+				assert(edge2.m_cut_vertex->m_reference_count == 0);
 
 				// join roots
-				edge1.m_cut_vertex->m_parent = root1;
+				edge2.m_cut_vertex->m_parent = root1;
 
 				// create two new output vertices
 				OutputVertex *output_vertex1 = AddOutputVertex(vertex);
 				OutputVertex *output_vertex2 = AddOutputVertex(vertex);
-				output_vertex1->m_next = edge1.m_output_vertex;
-				output_vertex2->m_next = edge1.m_cut_vertex->m_output_vertex->m_next;
+				output_vertex1->m_next = edge2.m_output_vertex;
+				output_vertex2->m_next = edge2.m_cut_vertex->m_output_vertex->m_next;
 
 				// close loop
-				edge1.m_cut_vertex->m_output_vertex->m_next = output_vertex1;
-				edge2.m_output_vertex->m_next = output_vertex2;
+				edge2.m_cut_vertex->m_output_vertex->m_next = output_vertex1;
+				edge1.m_output_vertex->m_next = output_vertex2;
 				root1->m_output_vertex = output_vertex1;
 
 			} else {
 
 				// create new output vertex
 				OutputVertex *output_vertex = AddOutputVertex(vertex);
-				output_vertex->m_next = edge1.m_output_vertex;
+				output_vertex->m_next = edge2.m_output_vertex;
 
 				// close loop
-				edge2.m_output_vertex->m_next = output_vertex;
+				edge1.m_output_vertex->m_next = output_vertex;
 				root1->m_output_vertex = output_vertex;
 
 			}
@@ -868,20 +872,24 @@ public:
 			size_t batch_size = (i == m_output_polygon_batches.size() - 1)? m_output_polygon_batch_used : OUTPUT_POLYGON_BATCH_SIZE;
 			for(size_t j = 0; j < batch_size; ++j) {
 				OutputPolygon *p = &batch[j];
+
+				// Both chains are linked from the newest vertex back to the shared start vertex. The loop with the positive
+				// orientation consists of the stop vertex, chain 2 from newest to oldest (including the start vertex), and
+				// finally chain 1 from oldest to newest (excluding the start vertex).
 				result.AddVertex(p->m_stop_vertex);
-				OutputVertex *v = p->m_chain1;
+				OutputVertex *v = p->m_chain2;
 				while(v != nullptr) {
 					result.AddVertex(v->m_vertex);
 					v = v->m_next;
 				}
-				OutputVertex *w = p->m_chain2;
+				OutputVertex *w = p->m_chain1;
 				size_t rev = 0;
 				while(w->m_next != nullptr) {
 					result.AddVertex(w->m_vertex);
 					w = w->m_next;
 					++rev;
 				}
-				std::reverse(result.vertices.end() - rev, result.vertices.end());
+				std::reverse(result.vertices.end() - ptrdiff_t(rev), result.vertices.end());
 				result.AddLoopEnd(1);
 			}
 		}
